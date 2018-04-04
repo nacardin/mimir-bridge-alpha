@@ -2,6 +2,7 @@
 name = "mimir-util"
 version = "0.1.0"
 authors = ["Forrest Marshall <forrest@mimirblockchain.solutions>"]
+license = "GPL-3.0"
 
 [dependencies]
 hex-core = { git = "https://github.com/forrest-marshall/hex-core.git" }

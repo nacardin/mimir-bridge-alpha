@@ -2,5 +2,6 @@
 name = "mimir-requester"
 version = "0.1.0"
 authors = ["Forrest Marshall <forrest@mimirblockchain.solutions>"]
+license = "GPL-3.0"
 
 [dependencies]
