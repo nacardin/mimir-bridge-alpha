@@ -1,16 +1,6 @@
 # overview
 
-## doc status
-
-- basics:
-  - [ ] What is the Mimir Bridge?
-  - [ ] Problem Statement (nodes, centralized APIs, etc...)
-  - [ ] Solution Statememt (decentralized APIs, PoS, etc...)
-
-- key-topics:
-  - [ ] Proof of Stake Commitments
-  - [ ] Trustless Verifier Selection
-  - [ ] Connection Poisoning
+Coming Soon!
 
 ## Basics
 
@@ -24,18 +14,20 @@ for establishing maximal security with minimum cost in terms of time and resourc
 is especially appealing for limited contexts such as Mobile or IoT devices but stands to 
 reduce cost and complexity in Cloud and Native applications as well.
 
-
 TODO
 
 ### The Connectivity Problem
 
-TODO
-
 ### Decentralized APIs
 
-TODO
 
 ## Key Topics
 
 TODO
+
+### Proof of Stake Commitments
+
+### Trustless Verifier Selection
+
+### Connection Poisoning
 

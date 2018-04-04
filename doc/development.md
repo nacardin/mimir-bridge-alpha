@@ -1,5 +1,7 @@
 # development
 
+Coming Soon!
+
 # doc status
 
 - [ ] Goals of Procedural Buildout
@@ -7,5 +9,4 @@
 - [ ] Blockchain State Management
 - [ ] Certs, Circuits, and Routing
 - [ ] Simplified RPC System & the Road to Arbitration
-
 
