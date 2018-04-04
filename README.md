@@ -18,6 +18,8 @@ rapid development/iteration, so expect regular braking changes.
 
 ## Getting Started
 
+Make sure you have a recent verion of [Rust](https://www.rust-lang.org) installed (stable OK).
+
 Check out auto-generated API docs with `cargo doc --open`.
 
 High level docs coming soon.
