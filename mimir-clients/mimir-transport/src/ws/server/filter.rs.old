@@ -1,0 +1,66 @@
+use websocket::stream::async::Stream as WsStream;
+use websocket::server::upgrade::async::Upgrade;
+use websocket::server::upgrade::HyperIntoWsError;
+use websocket::server::async::Incoming;
+use websocket::result::WebSocketError;
+use futures::{task,Stream,Async,Poll};
+use std::net::SocketAddr;
+
+
+
+/// incoming connection stream combinator.
+/// 
+/// logs incoming connections errors, suppressing errors
+/// which pertain to the individual connection (as opposed
+/// to the underlying tcp stream).
+///
+pub struct Filter<S> where S: WsStream + 'static {
+    inner: Incoming<S>,
+}
+
+
+impl<S> Filter<S> where S: WsStream + 'static {
+
+    /// instantiate new filter instance.
+    ///
+    pub fn new(inner: Incoming<S>) -> Self { Filter { inner } }
+
+    /// consume filer, yielding inner stream.
+    ///
+    pub fn into_inner(self) -> Incoming<S> { let Filter { inner } = self; inner }
+}
+
+
+impl<S> From<Incoming<S>> for Filter<S> where S: WsStream + 'static {
+
+    fn from(inner: Incoming<S>) -> Self { Self::new(inner) }
+}
+
+
+impl<S> Stream for Filter<S> where S: WsStream + 'static {
+
+    type Item = (Upgrade<S>,SocketAddr);
+
+    type Error = WebSocketError;
+
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>,Self::Error> {
+        match self.inner.poll() {
+            Ok(incoming) => Ok(incoming),
+            Err(invalid) => {
+                if let HyperIntoWsError::Io(error) = invalid.error {
+                    // io errors indicate problem with the server's underlying tcp listener
+                    error!("problem in tcp listener {:?}",error);
+                    Err(From::from(error))
+                } else {
+                    // other errors relate to the specific incoming connection, so drop connection
+                    // & yield back to the event loop.
+                    warn!("bad incoming connection {:?}",invalid.error);
+                    task::current().notify();
+                    Ok(Async::NotReady)
+                }
+            },
+        }
+    }
+}
+

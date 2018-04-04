@@ -1,0 +1,45 @@
+use websocket::async::stream::Stream as WsStream;
+use websocket::server::upgrade::async::Upgrade;
+use websocket::result::WebSocketError;
+use futures::{Stream,Async,Poll};
+use std::net::SocketAddr;
+use ws::server::Handshake;
+use ws::PROTOCOL;
+
+
+/// stream combinator for protocol handshakes.
+///
+pub struct Protocol<S> {
+    inner: S,
+    proto: String,
+}
+
+
+impl<S> Protocol<S> {
+
+    pub fn new(inner: S) -> Self {
+        Self::with_proto(inner,PROTOCOL.into())
+    }
+
+    pub fn with_proto(inner: S, proto: String) -> Self {
+        Protocol { inner, proto }
+    }
+}
+
+
+impl<S,T> Stream for Protocol<S> 
+    where S: Stream<Item=(Upgrade<T>,SocketAddr)>, 
+          WebSocketError: From<S::Error>, 
+          T: WsStream + 'static 
+{
+    type Item = Handshake<T>;
+
+    type Error = WebSocketError;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>,Self::Error> {
+        let (upgrade,addr) = try_ready_stream!(self.inner.poll());
+        let work = Handshake::with_proto(upgrade,addr,&self.proto);
+        Ok(Async::Ready(Some(work)))
+    }
+}
+

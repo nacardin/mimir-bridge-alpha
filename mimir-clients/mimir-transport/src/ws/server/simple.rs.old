@@ -1,0 +1,113 @@
+use websocket::stream::async::Stream as WsStream;
+use websocket::server::async::{Server,Incoming};
+use websocket::client::async::Client;
+use websocket::result::WebSocketError;
+use websocket::async::TcpStream;
+use futures::{Future,Stream,Async,Poll};
+use tokio_core::reactor::Handle;
+use std::net::SocketAddr;
+use ws::server::{Filter,Handshake};
+use ws::PROTOCOL;
+use std::io;
+
+
+
+pub fn bind(handle: &Handle, address: SocketAddr) -> io::Result<SimpleServer<TcpStream>> {
+    let incoming = Server::bind(address,handle)?.incoming();
+    Ok(incoming.into())
+}
+
+
+
+/// simple server implementation.
+///
+pub struct SimpleServer<S> where S: WsStream + 'static {
+    inner: Filter<S>,
+    proto: Option<String>,
+    state: ServerState<S>,
+}
+
+
+impl<S> SimpleServer<S> where S: WsStream + 'static {
+
+    pub fn new(inner: Filter<S>) -> Self {
+        let (proto,state) = Default::default();
+        SimpleServer { inner, proto, state }
+    }
+
+    pub fn with_proto(inner: Filter<S>, proto: String) -> Self {
+        let state = ServerState::WaitForConnect;
+        let proto = Some(proto);
+        SimpleServer { inner, proto, state }
+    }
+
+    pub fn proto(&self) -> &str {
+        if let Some(ref proto) = self.proto {
+            proto
+        } else {
+            PROTOCOL
+        }
+    }
+}
+
+
+impl<S> From<Incoming<S>> for SimpleServer<S> where S: WsStream + 'static {
+
+    fn from(incoming: Incoming<S>) -> Self {
+        SimpleServer::new(incoming.into())
+    }
+}
+
+
+impl<S> Stream for SimpleServer<S> where S:  WsStream + 'static {
+
+    type Item = (Client<S>,SocketAddr);
+
+    type Error = WebSocketError;
+
+    fn poll(&mut self) -> Poll<Option<Self::Item>,Self::Error> {
+        loop {
+            let next_state = match self.state {
+                ServerState::WaitForConnect => {
+                    let (upgrade,addr) = try_ready_stream!(self.inner.poll());
+                    let work = Handshake::with_proto(upgrade,addr,self.proto());
+                    ServerState::DoWork { work }
+                },
+                ServerState::DoWork { ref mut work } => {
+                    let rslt = try_ready!(work.poll());
+                    if rslt.is_some() {
+                        ServerState::Yield { rslt }
+                    } else {
+                        ServerState::WaitForConnect
+                    }
+                },
+                ServerState::Yield { ref mut rslt } => {
+                    if rslt.is_some() {
+                        return Ok(Async::Ready(rslt.take()));
+                    } else {
+                        ServerState::WaitForConnect
+                    }
+                }
+            };
+            self.state = next_state;
+        }
+    }
+}
+
+
+enum ServerState<S> where S: WsStream + 'static {
+    WaitForConnect,
+    DoWork {
+        work: Handshake<S>,
+    },
+    Yield {
+        rslt: Option<(Client<S>,SocketAddr)>
+    },
+}
+
+
+impl<S> Default for ServerState<S> where S: WsStream + 'static {
+
+    fn default() -> Self { ServerState::WaitForConnect }
+}
+

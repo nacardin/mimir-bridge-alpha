@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "mimir-bridge/mimir-crypto",
+    "mimir-bridge/mimir-types",
+    "mimir-bridge/mimir-util",
+    "mimir-bridge/mimir-proto",
+    "mimir-clients/mimir-transport",
+    "mimir-clients/mimir-node",
+    "mimir-clients/mimir-worker",
+    "mimir-clients/mimir-requester",
+]
