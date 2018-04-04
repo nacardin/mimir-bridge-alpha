@@ -1,3 +1,9 @@
+[package]
+name = "mimir-bridge"
+version = "0.1.0"
+authors = ["Forrest Marshall <forrest@mimirblockchain.solutions>"]
+license = "GPL-3.0"
+
 [workspace]
 members = [
     "mimir-bridge/mimir-crypto",
