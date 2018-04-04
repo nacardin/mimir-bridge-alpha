@@ -12,6 +12,15 @@ mimir-bridge clients implemented in rust.
 - [x] transparent jsonrpc error forwarding
 - [ ] fail-fast on chain reorgs (may require parity fork)
 
+### mimir-worker
 
-***TODO***
+TODO
+
+### mimir-requester
+
+TODO
+
+### mimir-transport
+
+TODO
 
