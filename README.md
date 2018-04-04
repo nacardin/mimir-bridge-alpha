@@ -1,4 +1,7 @@
-# mimir-bridge-alpha
+[travis-badge]: https://travis-ci.org/mimirblockchainsolutions/mimir-bridge-alpha.svg?branch=master
+[travis-url]: https://travis-ci.org/mimirblockchainsolutions/mimir-bridge-alpha
+
+# mimir-bridge-alpha [![Build Status][travis-badge]][travis-url]
 
 Experimental Rust implementation of Mimir Bridge clients & protocols.
 
