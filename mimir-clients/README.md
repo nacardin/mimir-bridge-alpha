@@ -13,8 +13,9 @@ mimir-bridge clients implemented in rust.
 - [ ] fail-fast on chain reorgs (may require parity fork)
 
 ### mimir-worker
-
-TODO
+ 
+- [x] check for funded state on startup
+- [ ] check for bound state on startup
 
 ### mimir-requester
 
