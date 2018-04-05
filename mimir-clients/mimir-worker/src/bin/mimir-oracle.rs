@@ -30,7 +30,7 @@ use mimir_worker::oracle::{
 
 fn main() {
     // load command line options & config values
-    let opt = Options::from_args();
+    let mut opt = Options::from_args();
     let conf = Config::init(&opt.config).unwrap();
 
     // set up logger & give some initial data
@@ -64,11 +64,22 @@ fn main() {
         info!("local node appears synced");
     } else {
         info!("skipping sync checks...");
-    } 
+    }
 
+    // check balance of worker account
+    let worker_address = oracle.sealer().address();
+    let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
+    let balance = core.run(balance_check).unwrap();
+ 
+    // assume we're on first run if balance is zero
+    if balance.is_zero() {
+        info!("account balance is zero, assuming uninitialized...");
+        opt.auto_fund = true;
+        opt.lock_stake = true;
+    }
 
-    // worker may need to call testnet faucet and get some
-    // fake ether for paying gas costs.
+    // attempt to auto-fund against testnet faucet if `auto-fund` uption
+    // was set (may be set by command line or balance check).
     if opt.auto_fund {
         info!("attempting auto-funding against {}",conf.fund_portal);
         let Auth { addr, role, time, seal } = oracle.gen_auth();
@@ -86,14 +97,24 @@ fn main() {
             .expect("faucet must be active");
         assert!(rsp.status().is_success(),"faucet rsp must be OK");
         info!("facet OK, waiting on funding tx...");
-        let sleep = timer.sleep(Duration::from_secs(60));
-        core.run(sleep).unwrap(); // TODO: replace sleep w/ actual monitoring
+        for i in 0.. {
+            let sleep = timer.sleep(Duration::from_secs(10));
+            core.run(sleep).unwrap();
+            let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
+            if core.run(balance_check).unwrap() > balance { break; }
+            if i > 10 {
+                panic!("funding TX failed; faucet encountered error or is depleted");
+            }
+        }
     } else {
         debug!("skipping auto-funding...")
     }
 
     // if worker is running for first time, it will need to
     // lock stake in order to serve in the system.
+    // TODO: add direct stake checks.  currently uses account balance as a 
+    // proxy for stake locking. this may cause a client to enter an unrecoverable 
+    // state if it fails after funding but before locking. 
     if opt.lock_stake {
         info!("locking worker stake...");
         let tx_work = oracle.lock_stake(conf.mimir_contract);
