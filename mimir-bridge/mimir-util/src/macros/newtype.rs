@@ -28,6 +28,17 @@
 #[macro_export]
 macro_rules! newtype {
     ( $name:ident, $inner:ty, $target:ty ) => {
+
+        impl $name {
+
+            /// consume `self`, returning inner value
+            pub fn into_inner(self) -> $inner { self.0 }
+
+            /// consume `self`, returning converted inner value
+            pub fn into_other<T: From<$inner>>(self) -> T { self.0.into() }
+        }
+
+
         impl From<$inner> for $name {
 
             fn from(inner: $inner) -> Self { $name(inner) }
