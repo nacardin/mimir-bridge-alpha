@@ -28,6 +28,7 @@ use mimir_worker::oracle::{
     Config,
 };
 
+
 fn main() {
     // load command line options & config values
     let mut opt = Options::from_args();
@@ -66,16 +67,14 @@ fn main() {
         info!("skipping sync checks...");
     }
 
-    // check balance of worker account
-    let worker_address = oracle.sealer().address();
+    // check worker account balance
+    let worker_address = oracle.sealer().address(); 
     let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
     let balance = core.run(balance_check).unwrap();
- 
-    // assume we're on first run if balance is zero
+
+    info!("worker balance {:?} (wei)",balance);
     if balance.is_zero() {
-        info!("account balance is zero, assuming uninitialized...");
         opt.auto_fund = true;
-        opt.lock_stake = true;
     }
 
     // attempt to auto-fund against testnet faucet if `auto-fund` uption
@@ -95,7 +94,10 @@ fn main() {
         let rsp = client.post(conf.fund_portal.clone())
             .json(&authorize).send()
             .expect("faucet must be active");
-        assert!(rsp.status().is_success(),"faucet rsp must be OK");
+        if !rsp.status().is_success() {
+            error!("bad faucet response {:?}",rsp);
+            panic!("cannot continue without funding");
+        }
         info!("facet OK, waiting on funding tx...");
         for i in 0.. {
             let sleep = timer.sleep(Duration::from_secs(10));
@@ -110,6 +112,15 @@ fn main() {
         debug!("skipping auto-funding...")
     }
 
+
+    // check if worker is in "bound" state (locked stake)
+    let stake_check = oracle.check_bound_state(conf.mimir_contract);
+    let is_bound = core.run(stake_check).unwrap();
+
+    if !is_bound {
+        opt.lock_stake = true;
+    }
+
     // if worker is running for first time, it will need to
     // lock stake in order to serve in the system.
     // TODO: add direct stake checks.  currently uses account balance as a 
@@ -121,7 +132,7 @@ fn main() {
         let receipt = core.run(tx_work).unwrap();
         info!("lock-stake transaction mined {:?}",receipt.transaction_hash);
     } else {
-        info!("assuming stake as locked...");
+        info!("stake appears locked...");
     }
 
     // call login portal and request a certificate for logging

@@ -6,7 +6,9 @@ use mimir_node::node::SimpleNode;
 use mimir_node::rpc::SimpleQuery;
 use mimir_types::Address;
 use crossbeam::sync::ArcCell;
-use web3::Transport;
+use web3::types::CallRequest;
+use web3::{self,Transport};
+use futures::Future;
 use std::sync::Arc;
 use mimir_node;
 
@@ -82,6 +84,34 @@ impl<T: Transport> SimpleOracle<T> {
         let sealer = self.sealer.clone();
         let work = self.node.execute_query(query); 
         SimpleOracleFuture::new(builder,sealer,work)
+    }
+
+
+    /// check if worker is 'bound'
+    pub fn check_bound_state(&self, api_contract: Address) -> Box<Future<Item=bool,Error=web3::Error>> where T::Out: 'static {
+        let address = self.sealer().address();
+        let calldata = mimir_node::abi::bound_state(&address);
+        let request = CallRequest {
+            from: Some(address.into_other()),
+            to: api_contract.into_other(),
+            gas: None,
+            gas_price: None,
+            value: None,
+            data: Some(calldata.into_other())
+        };
+        let work = self.node.eth().call(request,None)
+            .and_then(|mut bytes| {
+                match bytes.0.pop() {
+                    Some(0) => { Ok(false) },
+                    Some(1) => { Ok(true)  },
+                    _ => {
+                        let message = "expected boolian value (0 or 1)";
+                        let kind = web3::ErrorKind::InvalidResponse(message.to_string());
+                        Err(web3::Error::from(kind))
+                    }
+                }
+            });
+        Box::new(work)
     }
 
 
