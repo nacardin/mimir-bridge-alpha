@@ -47,7 +47,7 @@ impl<'v> MessageVisitor<'v> for CertVisitor {
         Ok(None)
     }
 
-    
+
     fn visit_oracle(&mut self, cert: &Oracle) -> Self::Out {
         let hash = self.hasher.visit_oracle(cert)
             .expect("always returns a value");
@@ -59,7 +59,7 @@ impl<'v> MessageVisitor<'v> for CertVisitor {
         }
     }
 
-    
+
     fn visit_notary(&mut self, cert: &Notary) -> Self::Out {
         let hash = self.hasher.visit_notary(cert)
             .expect("always returns a value");
