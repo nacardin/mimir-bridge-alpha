@@ -1,3 +1,4 @@
+use std::fmt::{self,Display};
 use serde_json::Value;
 use rpc::RpcMethod;
 
@@ -23,6 +24,7 @@ pub struct Query<M,P> {
 }
 
 
+
 impl<M,P> Query<M,P> {
 
     /// convert to success record.
@@ -40,10 +42,19 @@ impl<M,P> Query<M,P> {
     }
 }
 
+impl<M,P> Display for Query<M,P> where M: Display, P: Display {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("{ ")?;
+        display_query(f,&self.method,&self.params)?;
+        f.write_str(" }")
+    }
+}
+
 
 impl SimpleQuery {
 
-    /// lazily seed the 
+    /// lazily seed the default block parameter if applicable
     pub fn seed_block<F>(&mut self, seed: F) where F: FnOnce() -> String {
         if let Some(index) = self.method.default_block_index() {
             match self.params.len() {
@@ -79,16 +90,56 @@ pub enum Record<M,P,R,E> {
 
 impl<M,P,R,E> Record<M,P,R,E> {
 
+    /// instantiate success variant
     pub fn success(method: M, params: Vec<P>, result: R) -> Self {
         let inner = SuccessRecord { method, params, result };
         Record::Success(inner)
     }
 
+    /// instantiate failure variant
     pub fn failure(method: M, params: Vec<P>, error: E) -> Self {
         let inner = FailureRecord { method, params, error };
         Record::Failure(inner)
     }
+
+    /// get reference to `method` field of inner record
+    pub fn method(&self) -> &M {
+        match *self {
+            Record::Success(SuccessRecord { ref method, .. }) => method,
+            Record::Failure(FailureRecord { ref method, .. }) => method,
+        }
+    }
+
+    /// get reference to `params` field of inner record
+    pub fn params(&self) -> &[P] {
+        match *self {
+            Record::Success(SuccessRecord { ref params, .. }) => params,
+            Record::Failure(FailureRecord { ref params, .. }) => params,
+        }
+    }
+
+    /// get reference to payload of inner record as `Result` type
+    pub fn result(&self) -> Result<&R,&E> {
+        match *self {
+            Record::Success(SuccessRecord { ref result, .. }) => Ok(result),
+            Record::Failure(FailureRecord { ref error, .. }) => Err(error),
+        }
+    }
 }
+
+
+
+impl<M,P,R,E> Display for Record<M,P,R,E> where M: Display, P: Display, R: Display, E: Display {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("{ ")?;
+        display_query(f,self.method(),self.params())?;
+        f.write_str(", ")?;
+        display_result(f,self.result())?;
+        f.write_str(" }")
+    }
+}
+
 
 
 /// generic record of successful rpc execution.
@@ -122,5 +173,34 @@ pub struct FailureRecord<M,P,E> {
  
     /// failed outcome of rpc execution
     pub error: E
+}
+
+
+fn display_query<M: Display, P: Display>(f: &mut fmt::Formatter, method: &M, params: &[P]) -> fmt::Result {
+    f.write_str("method: ")?;
+    method.fmt(f)?;
+    if params.len() > 0 {
+        f.write_str(", params: [")?;
+        for (i,param) in params.iter().enumerate() {
+            if i > 0 { f.write_str(", ")?; }
+            param.fmt(f)?;
+        }
+        f.write_str("]")?;
+    }
+    Ok(())
+}
+
+
+fn display_result<R: Display, E: Display>(f: &mut fmt::Formatter, result: Result<&R,&E>) -> fmt::Result {
+    match result {
+        Ok(result) => {
+            f.write_str("result: ")?;
+            result.fmt(f)
+        },
+        Err(error) => {
+            f.write_str("error: ")?;
+            error.fmt(f)
+        },
+    }
 }
 
