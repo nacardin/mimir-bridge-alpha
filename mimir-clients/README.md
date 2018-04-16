@@ -15,7 +15,7 @@ mimir-bridge clients implemented in rust.
 ### mimir-worker
  
 - [x] check for funded state on startup
-- [ ] check for bound state on startup
+- [x] check for bound state on startup
 
 ### mimir-requester
 
