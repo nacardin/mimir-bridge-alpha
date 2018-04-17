@@ -1,5 +1,7 @@
 /// calldata encoders for common contract calls.
 ///
+pub mod workerset;
+
 use mimir_types::{
     Address,
     Bytes,

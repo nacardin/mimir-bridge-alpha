@@ -4,6 +4,7 @@ use mimir_proto::visit::{BlockVisitor,BlockState};
 use mimir_proto::message::Request;
 use mimir_node::node::SimpleNode;
 use mimir_node::rpc::SimpleQuery;
+use mimir_node::abi::workerset;
 use mimir_types::Address;
 use crossbeam::sync::ArcCell;
 use web3::types::CallRequest;
@@ -90,7 +91,7 @@ impl<T: Transport> SimpleOracle<T> {
     /// check if worker is 'bound'
     pub fn check_bound_state(&self, api_contract: Address) -> Box<Future<Item=bool,Error=web3::Error>> where T::Out: 'static {
         let address = self.sealer().address();
-        let calldata = mimir_node::abi::bound_state(&address);
+        let calldata = workerset::is_bound(&address);
         let request = CallRequest {
             from: Some(address.into_other()),
             to: api_contract.into_other(),
@@ -117,7 +118,8 @@ impl<T: Transport> SimpleOracle<T> {
 
     /// build a transaction future for stake lock.
     pub fn lock_stake(&self, api_contract: Address) -> TransactFuture<T,ArcSealer> {
-        let calldata = mimir_node::abi::lock_stake();
+        let address = self.sealer().address();
+        let calldata = workerset::set_bound(&address);
         TransactFuture::new(
             self.node.transport().clone(),
             self.sealer.clone(),
