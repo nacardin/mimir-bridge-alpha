@@ -7,7 +7,6 @@ use mimir_crypto::secp256k1::{
 use mimir_crypto::Keccak256;
 use mimir_util::unix_time;
 use common::Role;
-use std::mem;
 
 
 /// payload of the `AUTH` operation.

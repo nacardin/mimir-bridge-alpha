@@ -1,6 +1,9 @@
 use mimir_types::Address;
 use mimir_util::hex;
-use common::Role;
+use common::{
+    ParseMsgError,
+    Role
+};
 use std::str::FromStr;
 use std::fmt;
 
@@ -27,6 +30,7 @@ use std::fmt;
 /// assert!(direct.get_addr().is_some());
 /// # }
 /// ```
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Channel {
     /// competitive consumption channel
     Shared {
@@ -56,8 +60,8 @@ impl Channel {
 
     /// get channel's address value if exists
     #[inline]
-    pub fn get_addr(&self) -> Option<Address> {
-        if let Channel::Direct { addr, .. } = *self {
+    pub fn get_addr(&self) -> Option<&Address> {
+        if let Channel::Direct { ref addr, .. } = *self {
             Some(addr)
         } else {
             None
@@ -66,14 +70,9 @@ impl Channel {
 }
 
 
-simple_error!(
-    ParseChannelError => "error parsing channel name"
-);
-
-
 impl FromStr for Channel {
 
-    type Err = ParseChannelError;
+    type Err = ParseMsgError;
 
     fn from_str(s: &str) -> Result<Self,Self::Err> {
         let mut split = s.splitn(2,"::");
@@ -82,13 +81,13 @@ impl FromStr for Channel {
                 Some("work") => Ok(Channel::Shared { role }),
                 Some(other) => {
                     let addr: Address = other.parse()
-                        .map_err(|_|ParseChannelError)?;
+                        .map_err(|_|ParseMsgError::BadChannel)?;
                     Ok(Channel::Direct { role, addr })
                 },
-                None => Err(ParseChannelError),
+                None => Err(ParseMsgError::BadChannel),
             }
         } else {
-            Err(ParseChannelError)
+            Err(ParseMsgError::BadChannel)
         }
     }
 }

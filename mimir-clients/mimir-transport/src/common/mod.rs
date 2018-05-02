@@ -1,29 +1,31 @@
 /// common types & utilities.
 ///
 
+mod abilities;
 mod command;
 mod message;
 mod channel;
 mod auth;
 
+pub use self::abilities::Abilities;
+pub use self::message::RawMessage;
 pub use self::command::Command;
-pub use self::message::Message;
 pub use self::channel::Channel;
 pub use self::auth::Auth;
 
 
 simple_error!(
-    ParseOpError, "error encountered during operation parsing",
-    BadMsgFlag => "unknown message variant",
-    BadCmdFlag => "unknown command variant",
-    BadChannel => "invalid channel string",
-    MissingParam => "missing required param(s)",
+    ParseMsgError, "error during message parsing",
+    BadVariant => "unknown message variant",
+    BadChannel => "unable to parse channel",
+    BadAddress => "unable to parse address",
+    MissingVal => "missing required value(s)",
 );
-
 
 simple_unit!(
     MSG, "message operation variants",
     QUERY    => "QUERY",
+    NOTARIZE => "NOTARIZE",
     YIELD    => "YIELD",
     ROUTE    => "ROUTE",
     VERIFY   => "VERIFY",
@@ -32,15 +34,29 @@ simple_unit!(
 
 impl MSG {
 
+    /// get consumer role for message type
     pub fn consumer(&self) -> Role {
         match *self {
-            MSG::QUERY  => Role::Oracle,
-            MSG::YIELD  => Role::Notary,
-            MSG::ROUTE  => Role::Router,
-            MSG::VERIFY => Role::Verifier,
+            MSG::QUERY    => Role::Oracle,
+            MSG::NOTARIZE => Role::Notary,
+            MSG::YIELD    => Role::Requester,
+            MSG::ROUTE    => Role::Router,
+            MSG::VERIFY   => Role::Verifier,
+        }
+    }
+
+    /// check if message is directed variant
+    pub fn directed(&self) -> bool {
+        match *self {
+            MSG::QUERY    => false,
+            MSG::NOTARIZE => false,
+            MSG::YIELD    => true,
+            MSG::ROUTE    => false,
+            MSG::VERIFY   => true,
         }
     }
 }
+
 
 simple_unit!(
     CMD,"command operation variants",
@@ -52,13 +68,12 @@ simple_unit!(
 
 
 simple_unit!(
-    Role, "basic client roles",
+    Role, "basic client roles", 
     Oracle    => "oracle",
     Notary    => "notary",
-    Router    => "router",
     Requester => "requester",
+    Router    => "router", 
     Verifier  => "verifier",
-    Validator => "validator",
 );
 
 

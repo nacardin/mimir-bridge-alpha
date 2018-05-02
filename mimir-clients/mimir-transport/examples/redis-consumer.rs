@@ -5,9 +5,9 @@ extern crate env_logger;
 #[macro_use]
 extern crate log;
 
-use mimir_transport::redis::spawn;
+use mimir_transport::redis;
 use tokio_core::reactor::Core;
-use futures::{Future,Stream};
+use futures::Stream;
 use log::LevelFilter;
 
 
@@ -20,22 +20,24 @@ fn main() {
 
     let address = "127.0.0.1:6379".parse().unwrap();
 
-    let targets = ["some-list-0","some-list-1"];
-    
-    let work = spawn::watcher(&address,handle,targets)
-        .map_err(|e| error!("unable to spawn watcher {:?}",e))
-        .and_then(|watcher| {
-            watcher.for_each(|item| {
-                    info!("got item {:?}",item);
-                    Ok(())
-                })
-                .map_err(|e| error!("stream error {:?}",e))        
+    let targets = vec!["some-list-0".to_string(),"some-list-1".to_string()];
+
+    println!("targets: {:?}",targets);
+
+    let redis_handle = core.run(redis::spawn_blocking(&address,handle))
+        .expect("unable to initialize redis connection");
+
+    let work = redis::PopStream::new(redis_handle,targets)
+        .for_each(|(list,value)| {
+            info!("got value `{}` from list `{}`",value,list);
+            Ok(())
         });
  
-    core.run(work).unwrap();
+    core.run(work).expect("stream terminated with error");
 
     info!("work complete, shutting down...");
 }
+
 
 fn init_logger(debug: bool) {
     let loglevel = if debug {
