@@ -23,7 +23,7 @@ pub struct NonBlock<T> {
 pub type NonBlockHandle = NonBlock<Arc<PairedConnection>>;
 
 
-impl NonBlockHandle {
+impl NonBlock<Arc<PairedConnection>> {
 
     /// instantiate new nonblocking handle instance
     pub fn new<E>(addr: &SocketAddr, executor: E) -> Box<Future<Item=Self,Error=Error>> 
@@ -39,8 +39,12 @@ impl NonBlockHandle {
 
 
 impl<T> NonBlock<T> where T: RedisNonBlock {
+
     /// SREM -- remove matching member(s) from set
     pub fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> { self.inner.srem(key,members) }
+
+    /// SMOVE -- move matching member from one set to another
+    pub fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> { self.inner.smove(source,dest,member) }
 
     /// RPOP -- non-blocking right-handed pop
     pub fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>> { self.inner.rpop(key) }
@@ -54,6 +58,8 @@ impl<T> RedisNonBlock for NonBlock<T> where T: RedisNonBlock {
  
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> { self.srem(key,members) }
 
+    fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> { self.smove(source,dest,member) }
+    
     fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>> { self.rpop(key) }
 
     fn lpush<K: Into<String>, V: IntoIterator<Item=String>>(&self, key: K, values: V) -> SendBox<i64> { self.lpush(key,values) }
@@ -67,6 +73,9 @@ pub trait RedisNonBlock {
     /// SREM -- remove matching member(s) from set
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64>;
 
+    /// SMOVE -- move matching member from one set to another
+    fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64>;
+
     /// RPOP -- non-blocking right-handed pop
     fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>>;
 
@@ -79,6 +88,10 @@ impl RedisNonBlock for PairedConnection {
 
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         self.send(commands::srem(key,members))
+    }
+
+    fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> {
+        self.send(commands::smove(source,dest,member))
     }
 
     fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>> {
@@ -97,6 +110,10 @@ impl<'a,T> RedisNonBlock for &'a T where T: RedisNonBlock {
         <T as RedisNonBlock>::srem(self,key,members)
     }
 
+    fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::smove(self,source,dest,member)
+    }
+
     fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>> {
         <T as RedisNonBlock>::rpop(self,key)
     }
@@ -111,6 +128,10 @@ impl<T> RedisNonBlock for Arc<T> where T: RedisNonBlock {
 
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         <T as RedisNonBlock>::srem(self,key,members)
+    }
+
+    fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::smove(self,source,dest,member)
     }
 
     fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>> {
@@ -129,6 +150,10 @@ impl<T> RedisNonBlock for Rc<T> where T: RedisNonBlock {
         <T as RedisNonBlock>::srem(self,key,members)
     }
 
+    fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::smove(self,source,dest,member)
+    }
+
     fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>> {
         <T as RedisNonBlock>::rpop(self,key)
     }
@@ -143,6 +168,10 @@ impl<T> RedisNonBlock for Box<T> where T: RedisNonBlock {
 
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         <T as RedisNonBlock>::srem(self,key,members)
+    }
+
+    fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::smove(self,source,dest,member)
     }
 
     fn rpop<K: Into<String>>(&self, key: K) -> SendBox<Option<String>> {

@@ -26,10 +26,15 @@ pub fn srem<K: Into<String>, M: IntoIterator<Item=String>>(key: K, members: M) -
 }
 
 
+/// SMOVE -- move matching member from one set to another
+pub fn smove<K: Into<String>, M: Into<String>>(src: K, dst: K, member: M) -> RespValue {
+    resp_array!["SMOVE",src.into(),dst.into(),member.into()]
+}
+
+
 /// RPOP -- right-handed pop from a member from list
 pub fn rpop<K: Into<String>>(key: K) -> RespValue {
-    let key: String = key.into();
-    resp_array!["RPOP",key]
+    resp_array!["RPOP",key.into()]
 }
 
 

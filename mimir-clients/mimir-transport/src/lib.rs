@@ -8,6 +8,7 @@ extern crate websocket;
 extern crate redis_async;
 #[macro_use]
 extern crate futures;
+extern crate tokio_timer;
 extern crate tokio_core;
 #[macro_use]
 extern crate serde_derive;
@@ -18,6 +19,7 @@ extern crate log;
 
 pub mod common;
 pub mod redis;
+pub mod edge;
 pub mod ws;
 
 pub use common::{

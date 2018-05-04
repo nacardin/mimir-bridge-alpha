@@ -19,7 +19,7 @@ pub struct Blocking<T> {
 pub type BlockingHandle = Blocking<PairedConnection>;
 
 
-impl BlockingHandle {
+impl Blocking<PairedConnection> {
 
     /// instantiate new blocking handle instance
     pub fn new<E>(addr: &SocketAddr, executor: E) -> Box<Future<Item=Self,Error=Error>> 
