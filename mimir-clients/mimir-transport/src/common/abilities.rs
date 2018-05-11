@@ -1,4 +1,4 @@
-use common::{MSG,Role};
+use common::{MSG,CMD,Role};
 
 
 /// specification of an entity's capabilities
@@ -11,6 +11,9 @@ pub struct Abilities {
     produce_yield: bool,
     produce_route: bool,
     produce_verify: bool,
+    execute_identify: bool,
+    execute_debug: bool,
+    execute_kick: bool,
 }
 
 
@@ -24,6 +27,9 @@ impl Abilities {
             produce_yield: true,
             produce_route: true,
             produce_verify: true,
+            execute_identify: true,
+            execute_debug: true,
+            execute_kick: true,
         }
     }
 
@@ -44,6 +50,7 @@ impl Abilities {
             },
             Role::Router => Self { produce_notarize: true, ..Self::none() },
             Role::Verifier => Self { produce_notarize: true, ..Self::none() },
+            Role::Admin => Self::full(),
         }
     }
 
@@ -55,6 +62,15 @@ impl Abilities {
             MSG::YIELD    => self.produce_yield,
             MSG::ROUTE    => self.produce_route,
             MSG::VERIFY   => self.produce_verify,
+        }
+    }
+
+    /// check `execute` capability for `cmd`
+    pub fn can_execute(&self, cmd: CMD) -> bool {
+        match cmd {
+            CMD::IDENTIFY => self.execute_identify,
+            CMD::DEBUG     => self.execute_debug,
+            CMD::KICK     => self.execute_kick,
         }
     }
 }

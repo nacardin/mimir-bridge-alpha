@@ -8,6 +8,3 @@ pub mod server;
 ///
 const PROTOCOL: &'static str = "mimir-bridge-0";
 
-
-
-

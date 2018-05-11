@@ -1,7 +1,7 @@
 use redis_async::error::Error as RedisError;
 use tokio_timer::Error as TimerError;
 use websocket::WebSocketError;
-use common::ParseMsgError;
+use common::ParseError;
 use std::{fmt,error};
 
 
@@ -19,7 +19,7 @@ pub enum Error {
     WebSocket(WebSocketError),
 
     /// error during message parsing
-    Parsing(ParseMsgError),
+    Parsing(ParseError),
 
     /// generic error variant
     Other(&'static str)
@@ -79,9 +79,9 @@ impl From<WebSocketError> for Error {
     fn from(err: WebSocketError) -> Self { Error::WebSocket(err) }
 }
 
-impl From<ParseMsgError> for Error {
+impl From<ParseError> for Error {
 
-    fn from(err: ParseMsgError) -> Self { Error::Parsing(err) }
+    fn from(err: ParseError) -> Self { Error::Parsing(err) }
 }
 
 impl From<&'static str> for Error {

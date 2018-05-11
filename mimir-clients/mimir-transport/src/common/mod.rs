@@ -1,22 +1,31 @@
 /// common types & utilities.
 ///
 
+mod operation;
 mod abilities;
+mod identity;
 mod command;
 mod message;
 mod channel;
 mod auth;
 
+
+pub use self::operation::Operation;
 pub use self::abilities::Abilities;
-pub use self::message::RawMessage;
+pub use self::identity::Identity;
+pub use self::message::Message;
 pub use self::command::Command;
 pub use self::channel::Channel;
 pub use self::auth::Auth;
 
 
 simple_error!(
-    ParseMsgError, "error during message parsing",
-    BadVariant => "unknown message variant",
+    ParseError, "error during message/command parsing",
+    BadMsgVariant => "unknown message variant",
+    BadCmdVariant => "unknwon command variant",
+    BadRoleVariant => "unknown variant for rolename",
+    BadTimestamp => "unable to parse timestamp",
+    BadSignature => "unabel to parse signature",
     BadChannel => "unable to parse channel",
     BadAddress => "unable to parse address",
     MissingVal => "missing required value(s)",
@@ -60,11 +69,23 @@ impl MSG {
 
 simple_unit!(
     CMD,"command operation variants",
-    AUTH => "AUTH",
-    CONN => "CONN",
-    WORK => "WORK",
-    KICK => "KICK",
+    IDENTIFY => "IDENTIFY",
+    DEBUG    => "DEBUG",
+    KICK     => "KICK",
 );
+
+
+impl CMD {
+
+    /// check if command is signed variant
+    pub fn signed_variant(&self) -> bool {
+        match *self {
+            CMD::IDENTIFY => true,
+            CMD::DEBUG => false,
+            CMD::KICK => true,
+        }
+    }
+}
 
 
 simple_unit!(
@@ -74,11 +95,11 @@ simple_unit!(
     Requester => "requester",
     Router    => "router", 
     Verifier  => "verifier",
+    Admin     => "admin",
 );
 
 
-
-
+/*
 #[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
 #[serde(tag = "op", content = "msg")]
 #[serde(rename_all = "snake_case")]
@@ -107,4 +128,4 @@ impl<T> Operation<T> {
         }
     }
 }
-
+*/

@@ -1,6 +1,7 @@
+use mimir_util::hex;
 use secp256k1::Signer;
 use rand::{Rand,Rng};
-
+use std::fmt;
 
 /// recoverable signature in form `(r,s,v)`
 pub struct Signature(pub [u8;65]);
@@ -33,6 +34,17 @@ impl Signature {
     #[inline]
     pub fn get_s(&self) -> &[u8] { &self.0[32..64] }
 
+}
+
+
+impl fmt::Display for Signature {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut buff = [0u8;130];
+        let hex_str = hex::as_str(self.as_ref(),&mut buff);
+        if !f.alternate() { f.write_str("0x")?; }
+        f.write_str(hex_str)
+    }
 }
 
 

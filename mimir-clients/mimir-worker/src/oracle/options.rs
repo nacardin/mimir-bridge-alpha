@@ -12,6 +12,10 @@ pub struct Options {
     #[structopt(long = "log-level",default_value = "info")]
     pub log_level: LevelFilter,
 
+    /// skip all startup checks
+    #[structopt(long = "skip-all-checks")]
+    pub skip_all: bool,
+
     /// fund via faucet (testnet)
     #[structopt(long = "auto-fund")]
     pub auto_fund: bool,

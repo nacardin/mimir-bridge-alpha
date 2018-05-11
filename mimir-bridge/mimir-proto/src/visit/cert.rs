@@ -18,7 +18,7 @@ use std::{fmt,error};
 /// if cert fails one or more checks, an error describing
 /// the issue is returned.
 ///
-#[derive(Default)]
+#[derive(Default,Debug)]
 pub struct CertVisitor {
     verifier: Verifier,
     hasher: CertHasher,
@@ -112,7 +112,7 @@ impl<'v> MessageVisitor<'v> for CertVisitor {
 ///
 /// returns the hash necessary for signature recovery on certs
 /// which contain signatures, and `None` for all others.
-#[derive(Default)]
+#[derive(Default,Debug)]
 struct CertHasher {
     inner: ByteVisitor
 }

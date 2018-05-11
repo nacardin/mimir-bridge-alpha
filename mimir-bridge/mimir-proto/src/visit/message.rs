@@ -8,7 +8,7 @@ use mimir_types::H256;
 
 /// visitor which retains references to visited elements
 /// for later examination.
-#[derive(Debug,Clone)]
+#[derive(Default,Debug,Clone)]
 pub struct MessageVoyeur<'v> {
     payload: Option<&'v Payload>,
     verify: Vec<&'v Verify>,
@@ -90,6 +90,7 @@ pub type ByteVisitor = HashVisitor<HashVoyeur>;
 
 
 /// visitor for hashing a message.
+#[derive(Debug)]
 pub struct HashVisitor<T> {
     /// internal hasher instance
     pub hasher: T

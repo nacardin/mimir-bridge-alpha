@@ -23,7 +23,7 @@ pub struct AuthStream<T> {
 enum StreamState {
     AwaitNextInterval,
     PollAuth { 
-        work: Option<Box<Future<Item=Option<AuthRenewal>,Error=Error>>> 
+        work: Option<Box<Future<Item=AuthRenewal,Error=Error>>> 
     }
 }
 
@@ -57,11 +57,7 @@ impl<T> Stream for AuthStream<T> where T: RedisNonBlock + Clone + 'static {
                         let renewal = try_ready!(work.as_mut()
                             .expect("always `Some` variant").poll());
                         let _ = work.take();
-                        if let Some(renewal) = renewal {
-                            return Ok(Async::Ready(Some(renewal)));
-                        } else {
-                            StreamState::AwaitNextInterval
-                        }
+                        return Ok(Async::Ready(Some(renewal)));
                     } else {
                         StreamState::AwaitNextInterval
                     }
@@ -83,7 +79,20 @@ pub struct AuthRenewal {
 }
 
 
-fn poll_auth<T>(redis: T, time: Instant, addr: Address, role: Role) -> Box<Future<Item=Option<AuthRenewal>,Error=Error>>
+impl AuthRenewal {
+
+    fn new(instant: Instant) -> Self {
+        let (connectivity,authority) = Default::default();
+        Self { connectivity, authority, instant }
+    }
+
+    fn connectivity(self, connectivity: bool) -> Self { Self { connectivity, ..self } }
+
+    fn authority(self, authority: bool) -> Self { Self { authority, ..self } }
+}
+
+
+fn poll_auth<T>(redis: T, time: Instant, addr: Address, role: Role) -> Box<Future<Item=AuthRenewal,Error=Error>>
         where T: RedisNonBlock + 'static {
     // attempt to acquire `conn` lease (modeled as an
     // SMOVE from a set w/ suffix `-lease` to a set with
@@ -106,13 +115,13 @@ fn poll_auth<T>(redis: T, time: Instant, addr: Address, role: Role) -> Box<Futur
             }
         })
         .map(move |rslt: Option<bool>| {
-            rslt.map(|auth:bool| {
-                AuthRenewal {
-                    connectivity: true,
-                    authority: auth,
-                    instant: time
-                }
-            })
+            if let Some(auth) = rslt {
+                AuthRenewal::new(time)
+                    .connectivity(true)
+                    .authority(auth)
+            } else {
+                AuthRenewal::new(time)
+            }
         }).map_err(|e|Error::from(e));
     Box::new(work)
 }

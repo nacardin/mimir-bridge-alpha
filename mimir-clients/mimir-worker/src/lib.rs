@@ -24,4 +24,5 @@ extern crate log;
 
 pub mod common;
 pub mod oracle;
+pub mod notary;
 

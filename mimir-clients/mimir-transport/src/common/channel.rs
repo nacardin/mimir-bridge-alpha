@@ -1,7 +1,7 @@
 use mimir_types::Address;
 use mimir_util::hex;
 use common::{
-    ParseMsgError,
+    ParseError,
     Role
 };
 use std::str::FromStr;
@@ -72,7 +72,7 @@ impl Channel {
 
 impl FromStr for Channel {
 
-    type Err = ParseMsgError;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self,Self::Err> {
         let mut split = s.splitn(2,"::");
@@ -81,13 +81,13 @@ impl FromStr for Channel {
                 Some("work") => Ok(Channel::Shared { role }),
                 Some(other) => {
                     let addr: Address = other.parse()
-                        .map_err(|_|ParseMsgError::BadChannel)?;
+                        .map_err(|_|ParseError::BadChannel)?;
                     Ok(Channel::Direct { role, addr })
                 },
-                None => Err(ParseMsgError::BadChannel),
+                None => Err(ParseError::BadChannel),
             }
         } else {
-            Err(ParseMsgError::BadChannel)
+            Err(ParseError::BadChannel)
         }
     }
 }

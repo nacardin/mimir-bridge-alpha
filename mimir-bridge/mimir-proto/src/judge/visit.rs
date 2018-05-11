@@ -20,6 +20,7 @@ use message::cert::{
 
 /// visitor which passes judement(s) on a message.
 ///
+#[derive(Debug)]
 pub struct JudgeVisitor<'v,B> {
     /// buffer of potential accusations
     accuse: Vec<Accuse>,
@@ -42,7 +43,20 @@ pub struct JudgeVisitor<'v,B> {
 }
 
 
+impl<'v,B> Default for JudgeVisitor<'v,B> where B: Default {
+
+    fn default() -> Self { Self::new(Default::default()) } 
+}
+
+
 impl<'v,B> JudgeVisitor<'v,B> {
+
+    /// instantiate new judge instance
+    pub fn new(block: B) -> Self {
+        let (accuse,inner,state) = Default::default();
+        let (truth,seen) = (true,Ok(()));
+        Self { accuse, inner, state, block, truth, seen }
+    }
 
     /// check if internal state-tracking values
     /// are all in thier `ok` cases.

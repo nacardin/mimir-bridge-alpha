@@ -1,6 +1,6 @@
 use std::time::{Duration,Instant};
 use tokio_timer::Interval;
-use edge::AuthRenewal;
+use edge::auth::AuthRenewal;
 
 
 /// default multiplier for polling interval
@@ -55,7 +55,10 @@ impl LeaseConfig {
     pub fn seeding_interval(&self) -> Interval { Interval::new(Instant::now(),self.seeding) }
 
     /// get new `Instant` representing the current expiration cutoff
-    pub fn expire_cutoff(&self) -> Instant { Instant::now() - self.expiry }
+    pub fn expire_cutoff(&self) -> Instant { self.expire_cutoff_at(Instant::now()) }
+
+    /// get new `Instant` representing expiration cutoff at specified time
+    pub fn expire_cutoff_at(&self, instant: Instant) -> Instant { instant - self.expiry }
 }
 
 
@@ -95,7 +98,7 @@ impl LeaseState {
 
     /// get permission level as determined by currently held leases
     ///
-    pub fn get_auth_state(&self) -> LeaseLevel {
+    pub fn get_lease_level(&self) -> LeaseLevel {
         match (self.conn_lease.is_some(),self.auth_lease.is_some()) {
             (true,true) => LeaseLevel::FullAbilities,
             (true,false) => LeaseLevel::ConnectOnly,

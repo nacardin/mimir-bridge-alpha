@@ -11,19 +11,22 @@ extern crate env_logger;
 #[macro_use]
 extern crate log;
 
-use serde_json::Value;
-use futures::future::{self,Future,IntoFuture,Either};
+use futures::{Future,Stream,Sink};
 use tokio_core::reactor::Core;
 use tokio_timer::Timer;
 use std::time::Duration;
 use log::LevelFilter;
 
 use mimir_worker::common::KeyStore;
-use mimir_transport::common::Auth;
-use mimir_transport::ws;
-use mimir_worker::oracle::{
+use mimir_transport::{ws,edge};
+use mimir_transport::common::{
+    Message,
+    Command,
+    Auth,
+    Role,
+    MSG,
+};use mimir_worker::oracle::{
     SimpleOracle,
-    OracleOp,
     Options,
     Config,
 };
@@ -55,158 +58,139 @@ fn main() {
     // api calls during init sequence.
     let client = reqwest::Client::new();
 
-    // unless working on a local dev chain, the client should
-    // verify that the local node is sychronized before continuing...
-    if !opt.skip_sync {
-        info!("verifying sync state...");
-        let poll_sync = timer.interval(Duration::from_millis(500));
-        let await_sync = oracle.node().util().await_sync(poll_sync);
-        core.run(await_sync).unwrap();
-        info!("local node appears synced");
-    } else {
-        info!("skipping sync checks...");
-    }
-
-    // check worker account balance
-    let worker_address = oracle.sealer().address(); 
-    let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
-    let balance = core.run(balance_check).unwrap();
-
-    info!("worker balance {:?} (wei)",balance);
-    if balance.is_zero() {
-        opt.auto_fund = true;
-    }
-
-    // attempt to auto-fund against testnet faucet if `auto-fund` uption
-    // was set (may be set by command line or balance check).
-    if opt.auto_fund {
-        info!("attempting auto-funding against {}",conf.fund_portal);
-        let Auth { addr, role, time, seal } = oracle.gen_auth();
-        let authorize = json!({
-            "msg": {
-                "addr": addr,
-                "role": role,
-                "time": time,
-            },
-            "sig": seal,
-        });
-        debug!("auto-fund with auth {}",authorize);
-        let rsp = client.post(conf.fund_portal.clone())
-            .json(&authorize).send()
-            .expect("faucet must be active");
-        if !rsp.status().is_success() {
-            error!("bad faucet response {:?}",rsp);
-            panic!("cannot continue without funding");
+    if !opt.skip_all {
+        // unless working on a local dev chain, the client should
+        // verify that the local node is sychronized before continuing...
+        if !opt.skip_sync {
+            info!("verifying sync state...");
+            let poll_sync = timer.interval(Duration::from_millis(500));
+            let await_sync = oracle.node().util().await_sync(poll_sync);
+            core.run(await_sync).unwrap();
+            info!("local node appears synced");
+        } else {
+            info!("skipping sync checks...");
         }
-        info!("facet OK, waiting on funding tx...");
-        for i in 0.. {
-            let sleep = timer.sleep(Duration::from_secs(10));
-            core.run(sleep).unwrap();
-            let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
-            if core.run(balance_check).unwrap() > balance { break; }
-            if i > 10 {
-                panic!("funding TX failed; faucet encountered error or is depleted");
-            }
+
+        // check worker account balance
+        let worker_address = oracle.sealer().address(); 
+        let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
+        let balance = core.run(balance_check).unwrap();
+
+        info!("worker balance {:?} (wei)",balance);
+        if balance.is_zero() {
+            opt.auto_fund = true;
         }
-    } else {
-        debug!("skipping auto-funding...")
-    }
 
-
-    // check if worker is in "bound" state (locked stake)
-    let stake_check = oracle.check_bound_state(conf.mimir_contract);
-    let is_bound = core.run(stake_check).unwrap();
-
-    if !is_bound {
-        opt.lock_stake = true;
-    }
-
-    // if worker is running for first time, it will need to
-    // lock stake in order to serve in the system.
-    // TODO: add direct stake checks.  currently uses account balance as a 
-    // proxy for stake locking. this may cause a client to enter an unrecoverable 
-    // state if it fails after funding but before locking. 
-    if opt.lock_stake {
-        info!("locking worker stake...");
-        let tx_work = oracle.lock_stake(conf.mimir_contract);
-        let receipt = core.run(tx_work).unwrap();
-        info!("lock-stake transaction mined {:?}",receipt.transaction_hash);
-    } else {
-        info!("stake appears locked...");
-    }
-
-    // call login portal and request a certificate for logging
-    // onto the main api.
-    info!("attempting login against {}",conf.login_portal); 
-    let Auth { addr, role, time, seal } = oracle.gen_auth();
-    let authorize = json!({
-        "msg": {
-            "addr": addr,
-            "role": role,
-            "time": time,
-        },
-        "sig": seal,
-    });
-    debug!("login with auth {}",authorize);
-    let mut rsp = client.post(conf.login_portal.clone())
-        .json(&authorize).send()
-        .expect("login portal must be active");
-    assert!(rsp.status().is_success(),"login rsp must be OK");
-    let rsp_json: Value = serde_json::from_str(&rsp.text().unwrap()).unwrap();
-    let login_json = json!({
-        "op" : "login",
-        "msg": rsp_json
-    });
-    let login = serde_json::to_string(&login_json).unwrap(); 
-
-
-    // execute handshake against main bridge api portal.
-    info!("attempting handshake against {}",conf.bridge_portal);
-    let connect = ws::client::connect(&handle,&conf.bridge_portal,login.into());
-    let client = core.run(connect).unwrap();
-
-    // build primary work future.
-    let work = ws::client::spawn(&handle,client,move |text: String| {
-        trace!("incoming text {}",text);
-        let parse: Result<OracleOp,_> = serde_json::from_str(&text);
-        let remap: Result<_,_> = parse.map_err(|e| error!("parse error {:?}",e))
-            .map(|operation| {
-                match operation {
-                    OracleOp::Query(request) => {
-                        info!("serving {:?}",request);
-                        let work = oracle.serve_request(request)
-                            .map_err(|e| error!("oracle error {:?}",e))
-                            .map(|message| Some(message));
-                        Either::A(work)
-                    },
-                    OracleOp::Block(block_info) => {
-                        oracle.set_block(block_info);
-                        Either::B(future::ok(None))
-                    },
-                } 
+        // attempt to auto-fund against testnet faucet if `auto-fund` uption
+        // was set (may be set by command line or balance check).
+        if opt.auto_fund {
+            info!("attempting auto-funding against {}",conf.fund_portal);
+            let Auth { addr, role, time, seal } = oracle.gen_auth();
+            let authorize = json!({
+                "msg": {
+                    "addr": addr,
+                    "role": role,
+                    "time": time,
+                },
+                "sig": seal,
             });
-        let work = remap.into_future().flatten()
-            .and_then(|rslt| { 
-                if let Some(message) = rslt {
-                    info!("sending {:?}",message);
-                    let msg = json!({
-                        "op": "notarize",
-                        "msg": message
-                    }); 
-                    match serde_json::to_string(&msg) {
-                        Ok(msg) => Ok(Some(msg)),
-                        Err(e) => {
-                            error!("serialization failed {:?}",e);
-                            Ok(None)
-                        },
-                    }
-                } else {
-                    Ok(None)
+            debug!("auto-fund with auth {}",authorize);
+            let rsp = client.post(conf.fund_portal.clone())
+                .json(&authorize).send()
+                .expect("faucet must be active");
+            if !rsp.status().is_success() {
+                error!("bad faucet response {:?}",rsp);
+                panic!("cannot continue without funding");
+            }
+            info!("facet OK, waiting on funding tx...");
+            for i in 0.. {
+                let sleep = timer.sleep(Duration::from_secs(10));
+                core.run(sleep).unwrap();
+                let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
+                if core.run(balance_check).unwrap() > balance { break; }
+                if i > 10 {
+                    panic!("funding TX failed; faucet encountered error or is depleted");
                 }
-            })
-            .then(|rslt| Ok(rslt.unwrap_or(None)));
-        work
-    });
+            }
+        } else {
+            debug!("skipping auto-funding...")
+        }
+
+
+        // check if worker is in "bound" state (locked stake)
+        let stake_check = oracle.check_bound_state(conf.mimir_contract);
+        let is_bound = core.run(stake_check).unwrap();
+
+        if !is_bound {
+            opt.lock_stake = true;
+        }
+
+        // if worker is running for first time, it will need to
+        // lock stake in order to serve in the system.
+        // TODO: add direct stake checks.  currently uses account balance as a 
+        // proxy for stake locking. this may cause a client to enter an unrecoverable 
+        // state if it fails after funding but before locking. 
+        if opt.lock_stake {
+            info!("locking worker stake...");
+            let tx_work = oracle.lock_stake(conf.mimir_contract);
+            let receipt = core.run(tx_work).unwrap();
+            info!("lock-stake transaction mined {:?}",receipt.transaction_hash);
+        } else {
+            info!("stake appears locked...");
+        }
+    } else {
+        info!("skipping all startup checks...");
+    }
+
+
+    let identify = Command::identify(Role::Oracle,oracle.sealer());
+
+    let connect = ws::client::connect(&handle,&conf.bridge_portal,identify.to_string());
+
+    let oracle_address = oracle.sealer().address();
+
+    let work = connect.map_err(|e|error!("while connecting {}",e))
+        .and_then(move |client| {
+            let (tx,rx) = edge::split_client(client);
+            let serve = rx.map_err(|e|error!("in incoming msg string {}",e))
+                .filter_map(move |operation| {
+                    match operation.expect_message(MSG::QUERY) {
+                        Ok(message) => {
+                            match serde_json::from_str(message.msg_payload()) {
+                                Ok(request) => {
+                                    let work = oracle.serve_request(request)
+                                        .map_err(|e|error!("oracle error {:?}",e));
+                                    Some(work)
+                                },
+                                Err(err) => {
+                                    warn!("got error `{}` while parsing `{}`",err,message);
+                                    None
+                                },
+                            }
+                        },
+                        Err(op) => {
+                            warn!("unexpected operation {}",op);
+                            None
+                        }
+                    }
+                })
+                .buffer_unordered(128)
+                .filter_map(move |message| {
+                    match serde_json::to_string(&message) {
+                        Ok(msg_string) => {
+                            let msg = format!("NOTARIZE {} {}",oracle_address,msg_string);
+                            Some(Message::from_string(msg).expect("always valid `Message` object").into())
+                        },
+                        Err(err) => {
+                            warn!("got error `{}` while serializing `{:?}`",err,message);
+                            None
+                        }
+                    }
+                })
+                .forward(tx.sink_map_err(|e|error!("in outgoing msg sink {}",e)))
+                .map(|_|());
+            serve
+        });
 
     // do work.
     core.run(work).unwrap()

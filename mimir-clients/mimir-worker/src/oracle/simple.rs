@@ -11,7 +11,7 @@ use web3::types::CallRequest;
 use web3::{self,Transport};
 use futures::Future;
 use std::sync::Arc;
-use mimir_node;
+
 
 use oracle::util::MessageBuilder;
 use oracle::types::SimpleOracleFuture;
@@ -58,7 +58,7 @@ impl<T> SimpleOracle<T> {
         // of separate `Oracle` and `Verifier` roles.  The call below
         // will need to be changed as soon as the admin server & solidity
         // assets are updated to reflect this.
-        Auth::new(&self.sealer,Role::Validator)
+        Auth::new(&self.sealer,Role::Oracle)
     } 
 }
 

@@ -1,23 +1,24 @@
 use mimir_types::Address;
 use common::{
-    ParseMsgError,
+    ParseError,
     Channel,
     MSG,
 };
 use std::str::FromStr;
+use std::fmt;
 
 
-/// raw message value
+/// message value
 ///
 /// ```
 /// #
 /// extern crate mimir_transport;
-/// use mimir_transport::common::RawMessage;
+/// use mimir_transport::common::Message;
 /// # fn main() {
 ///
 /// let buf = "QUERY 0x9469d56752abf5120c568FF2F94175841B829ee7 some-payload".to_string();
 ///
-/// let msg = RawMessage::from_string(buf).unwrap();
+/// let msg = Message::from_string(buf).unwrap();
 /// 
 /// assert_eq!(&msg.dest_channel().to_string(),"oracle::work");
 ///
@@ -25,18 +26,19 @@ use std::str::FromStr;
 /// # }
 /// ```
 /// 
-pub struct RawMessage {
+#[derive(Debug,Clone)]
+pub struct Message {
     metadata: MessageData,
     inner: String,
 }
 
 
-impl RawMessage {
+impl Message {
 
     /// generate raw message from unprocessed string
-    pub fn from_string(inner: String) -> Result<Self,ParseMsgError> {
+    pub fn from_string(inner: String) -> Result<Self,ParseError> {
         let metadata = inner.parse()?;
-        Ok(RawMessage { metadata, inner })
+        Ok(Self { metadata, inner })
     }
 
     /// convert to inner string buffer
@@ -73,9 +75,17 @@ impl RawMessage {
 }
 
 
-impl Into<String> for RawMessage {
+impl Into<String> for Message {
 
     fn into(self) -> String { self.into_inner() }
+}
+
+
+impl fmt::Display for Message {
+
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(&self.inner)
+    }
 }
 
 
@@ -96,27 +106,27 @@ struct MessageData {
 
 impl FromStr for MessageData {
 
-    type Err = ParseMsgError;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self,Self::Err> {
         let mut split = s.splitn(3,' ');
         if let (Some(msg),Some(src),Some(tail)) = (split.next(),split.next(),split.next()) {
-            let variant: MSG = msg.parse().map_err(|_|ParseMsgError::BadVariant)?;
-            let source: Address = src.parse().map_err(|_|ParseMsgError::BadAddress)?;
+            let variant: MSG = msg.parse().map_err(|_|ParseError::BadMsgVariant)?;
+            let source: Address = src.parse().map_err(|_|ParseError::BadAddress)?;
             let (dest,size) = if variant.directed() {
                 let mut split = tail.splitn(2,' ');
                 if let (Some(dest),Some(tail)) = (split.next(),split.next()) {
-                    let address = dest.parse().map_err(|_|ParseMsgError::BadAddress)?;
+                    let address = dest.parse().map_err(|_|ParseError::BadAddress)?;
                     (Some(address),tail.len())
                 } else {
-                    return Err(ParseMsgError::MissingVal);
+                    return Err(ParseError::MissingVal);
                 }
             } else {
                 (None,tail.len())
             };
             Ok(MessageData { variant, source, dest, size })
         } else {
-            Err(ParseMsgError::MissingVal) 
+            Err(ParseError::MissingVal) 
         }
     }
 }

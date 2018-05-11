@@ -18,7 +18,9 @@ fn main() {
 
     let handle = core.handle();
 
-    let addr = "127.0.0.1:8888".parse().unwrap();
+    let addr = "127.0.0.1:8765".parse().unwrap();
+
+    info!("configured to listen on {}...",addr);
 
     let server = ws::server::bind(&handle,addr).unwrap();
 
