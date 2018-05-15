@@ -1,4 +1,4 @@
-//! service which monitors blockchain state & supplies permissions
+//! service which monitors blockchain state & seeds permission
 //! information to `edge-server` instances.
 //!
 extern crate mimir_service;
@@ -12,7 +12,7 @@ extern crate env_logger;
 extern crate log;
 
 
-use mimir_service::auth_server::{
+use mimir_service::auth_seeder::{
     SeedLoader,
     apply_seeding,
     Options,
@@ -80,7 +80,7 @@ fn init_logger(loglevel: LevelFilter) {
         env_logger::init();
     } else {
         env_logger::Builder::from_default_env()
-                .filter(Some("auth_server"),loglevel)
+                .filter(Some("auth_seeder"),loglevel)
                 .filter(Some("mimir_service"),loglevel)
                 .filter(Some("mimir_node"),loglevel)
                 .filter(Some("mimir_transport"),loglevel)

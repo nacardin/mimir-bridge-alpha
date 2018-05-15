@@ -29,6 +29,6 @@ extern crate url;
 extern crate log;
 
 
-pub mod auth_server;
+pub mod auth_seeder;
 pub mod edge_server;
 

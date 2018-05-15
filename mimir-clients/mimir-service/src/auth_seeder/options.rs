@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 /// command line args
 #[derive(Debug,Clone,StructOpt)]
-#[structopt(name = "auth-server", about = "mimir-bridge auth server")]
+#[structopt(name = "auth-seeder", about = "mimir-bridge auth seeder")]
 pub struct Options {
 
     /// set max log level

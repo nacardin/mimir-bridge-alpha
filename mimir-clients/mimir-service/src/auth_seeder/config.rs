@@ -1,6 +1,6 @@
 use std::path::Path;
 use mimir_util::toml::{self,TomlError};
-use auth_server::SeedSources;
+use auth_seeder::SeedSources;
 use std::net::SocketAddr;
 use std::str::FromStr;
 use url::Url;
@@ -10,7 +10,7 @@ use url_serde;
 pub(crate) const DEFAULT_CONFIG: &'static str = include_str!("include/config.toml");
 
 
-/// auth-server configuration values
+/// auth-seeder configuration values
 ///
 #[derive(Debug,Clone,Serialize,Deserialize)]
 pub struct Config {
@@ -73,7 +73,7 @@ mod defaults {
 
 #[cfg(test)]
 mod tests {
-    use auth_server::config::{
+    use auth_seeder::config::{
         DEFAULT_CONFIG,
         Config,
     };
