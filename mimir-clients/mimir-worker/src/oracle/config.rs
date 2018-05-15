@@ -12,6 +12,10 @@ pub struct Config {
     /// ethereum address of the primary mimir worker api contract
     #[serde(rename = "mimir-contract", default = "defaults::mimir_contract")]
     pub mimir_contract: Address,
+
+    /// url of ethereum websocket rpc
+    #[serde(rename = "websocket-rpc", default = "defaults::websocket_rpc", with = "url_serde")]
+    pub websocket_rpc: Url,
    
     /// address of the primary bridge api portal
     #[serde(rename = "bridge-portal", default = "defaults::bridge_portal", with = "url_serde")]
@@ -50,6 +54,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             mimir_contract: defaults::mimir_contract(),
+            websocket_rpc: defaults::websocket_rpc(),
             bridge_portal: defaults::bridge_portal(),
             login_portal: defaults::login_portal(),
             fund_portal: defaults::fund_portal(),
@@ -73,6 +78,10 @@ mod defaults {
     const HOST: &'static str = "b2i.io";
 
     pub fn mimir_contract() -> Address { Address::from(MIMIR) }
+
+    pub fn websocket_rpc() -> Url {
+        "ws://127.0.0.1:8546".parse().expect("default rpc address must parse")
+    }
 
     pub fn bridge_portal() -> Url {
         //let url_string = format!("wss://{}:8080/mimir-bridge",HOST);

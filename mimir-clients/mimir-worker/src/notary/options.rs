@@ -19,7 +19,7 @@ pub struct Options {
     pub bridge_portal: Url,
 
     /// path to key file
-    #[structopt(long = "key-store", default_value = "key-store.toml", parse(from_os_str))]
+    #[structopt(long = "key-store", default_value = "notary-keys.toml", parse(from_os_str))]
     pub keys: PathBuf,
 }
 

@@ -51,7 +51,7 @@ fn main() {
     // set up basic oracle client handle.
     let sealer = KeyStore::init(&opt.keys)
         .unwrap().sealer().unwrap(); 
-    let node = mimir_node::node::ipc(&opt.ipc,&handle).unwrap();
+    let node = mimir_node::node::ws(conf.websocket_rpc.as_ref(),&handle).unwrap();
     let oracle = SimpleOracle::new(sealer,node);
      
     // set up synchronous http client for handling simple

@@ -59,7 +59,7 @@ impl<T> SimpleOracle<T> {
         // will need to be changed as soon as the admin server & solidity
         // assets are updated to reflect this.
         Auth::new(&self.sealer,Role::Oracle)
-    } 
+    }
 }
 
 

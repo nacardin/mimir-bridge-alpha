@@ -33,12 +33,8 @@ pub struct Options {
     pub config: PathBuf,
 
     /// path to key file
-    #[structopt(long = "key-store", default_value = "key-store.toml", parse(from_os_str))]
+    #[structopt(long = "key-store", default_value = "oracle-keys.toml", parse(from_os_str))]
     pub keys: PathBuf,
-
-    /// path to jsonrpc ipc
-    #[structopt(long = "ipc-path", default_value = "jsonrpc.ipc", parse(from_os_str))]
-    pub ipc: PathBuf,
 }
 
 
