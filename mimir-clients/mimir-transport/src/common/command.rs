@@ -25,22 +25,36 @@ use std::fmt::{self,Write};
 /// use mimir_transport::common::Command;
 /// # fn main() {
 /// 
-/// let raw = "KICK oracle::00a329c0648769a73afac7f9381e08fb43dbea72 0x5af09f79";
+/// let raw = "DEBUG oracle::00a329c0648769a73afac7f9381e08fb43dbea72 0x5af09f79 some message";
 ///
 /// let cmd: Command = raw.parse().unwrap();
 /// 
+/// // the `DEBUG` command is an unsigned variant
 /// assert!(cmd.seal.is_none());
 ///
+/// // the `to_string` method produces a valid serializaiton
 /// assert_eq!(&cmd.to_string(),raw);
+/// 
+/// // `DEBUG` treats all data after the timestamp as an arbitrary string
+/// assert_eq!(&cmd.data.unwrap(),"some message");
 /// # }
 /// ```
 ///
 #[derive(Debug,Clone,PartialEq,Eq)]
 pub struct Command {
+    /// flag indicating the command variant
     pub flag: CMD,
+    
+    /// destination/target of this command
     pub dest: Identity,
+    
+    /// unix timestamp at which command was produced
     pub time: U256,
+    
+    /// arbitrary payload data, if any exists
     pub data: Option<String>,
+    
+    /// signature of preceeding fields (required by some variants)
     pub seal: Option<Signature>,
 }
 

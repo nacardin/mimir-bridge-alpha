@@ -25,13 +25,13 @@ fn main() {
 
     let ws_server = ws::server::bind(&handle,server_addr).unwrap();
 
-    let auth_server = edge::DebugAuthServer;
+    let auth_server = edge::Policy::new(edge::DebugAuthServer,Default::default());
 
     let work = ws_server.for_each(|(client,address)| {
         info!("incoming connection from {}",address);
         let conn_handle = handle.clone();
         let conn_work = edge::serve_connection(
-            auth_server,
+            auth_server.clone(),
             client,
             redis_addr,
             conn_handle

@@ -191,7 +191,7 @@ impl<T> Stream for LeaseStream<T> where T: RedisNonBlock {
 const POLLING: u32 = 3;
 /// default multiplier for seeding interval
 const SEEDING: u32 = 7;
-/// default multiplier for expiry interval
+/// default multiplier for expiry cutoff
 const EXPIRY: u32 = 11;
 
 
