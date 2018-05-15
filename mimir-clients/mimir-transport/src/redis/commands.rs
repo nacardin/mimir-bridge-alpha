@@ -17,6 +17,15 @@ pub fn brpop<K: IntoIterator<Item=String>>(keys: K, timeout: Option<u64>) -> Res
 // ------------------------ non-blocking ops ------------------------
 
 
+/// SADD -- add member(s) to set
+pub fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(key: K, members: M) -> RespValue {
+    let command = String::from("SADD");
+    let values: Vec<RespValue> = Some(command).into_iter().chain(Some(key.into()))
+        .chain(members).map(|elem| elem.into()).collect();
+    RespValue::Array(values)
+}
+
+
 /// SREM -- remove matching member(s) from set
 pub fn srem<K: Into<String>, M: IntoIterator<Item=String>>(key: K, members: M) -> RespValue {
     let command = String::from("SREM");

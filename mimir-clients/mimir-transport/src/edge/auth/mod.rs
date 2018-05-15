@@ -1,6 +1,8 @@
 
+pub(crate) mod util;
 mod lease;
 mod renew;
+mod policy;
 
 pub(crate) use self::renew::{
     RenewalStream,
@@ -10,6 +12,10 @@ pub use self::lease::{
     LeaseServer,
     AcquireLease,
     HoldLease,
+};
+pub use self::policy::{
+    AuthPolicy,
+    Policy,
 };
 
 use futures::{future,Future,Async,Poll};
@@ -39,7 +45,9 @@ pub trait AuthServer {
             where F: Future<Item=()> + 'static, Self::Error: From<F::Error> {
         let acquire = self.authorize(identity);
         let work = acquire.and_then(move |hold: Self::HoldFuture| {
-            hold.join(work.map_err(|e|Self::Error::from(e))).map(|_|())
+            info!("got auth for {}",identity);
+            hold.select(work.map_err(|e|Self::Error::from(e))).map(|_|())
+                .map_err(|(e,_)|e)
         });
         Box::new(work)
     }
@@ -50,7 +58,7 @@ pub trait AuthServer {
 pub struct DebugAuthServer;
 
 /// future which never resolves
-struct NeverFuture;
+pub(crate) struct NeverFuture;
 
 
 impl Future for NeverFuture {
@@ -78,3 +86,4 @@ impl AuthServer for DebugAuthServer {
         }))
     }
 }
+

@@ -14,4 +14,5 @@ members = [
     "mimir-clients/mimir-node",
     "mimir-clients/mimir-worker",
     "mimir-clients/mimir-requester",
+    "mimir-clients/mimir-service",
 ]

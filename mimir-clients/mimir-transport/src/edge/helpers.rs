@@ -12,6 +12,7 @@ use common::{
 use edge::{
     OperationFilter,
     AuthServer,
+    Policy,
     Error,
 };
 use std::net::SocketAddr;
@@ -22,14 +23,24 @@ use std::net::SocketAddr;
 // polled at least once each per message.
 
 
-pub type Sender = Box<Sink<SinkItem=Operation,SinkError=Error>>;
+//pub type Sender = Box<Sink<SinkItem=Operation,SinkError=Error>>;
 
-pub type Receiver = Box<Stream<Item=Operation,Error=Error>>;
+
+pub trait Sender: Sink<SinkItem=Operation,SinkError=Error> { }
+
+impl<T> Sender for T where T: Sink<SinkItem=Operation,SinkError=Error> { }
+
+pub trait Receiver: Stream<Item=Operation,Error=Error> { }
+
+impl<T> Receiver for T where T: Stream<Item=Operation,Error=Error> { }
+
+
+//pub type Receiver = Box<Stream<Item=Operation,Error=Error>>;
 
 
 /// attempt to serve a client connection
 ///
-pub fn serve_connection<A,S,E>(auth_server: A, client: Client<S>, redis_addr: SocketAddr, executor: E) -> Box<Future<Item=(),Error=Error>>
+pub fn serve_connection<A,S,E>(auth_server: Policy<A>, client: Client<S>, redis_addr: SocketAddr, executor: E) -> impl Future<Item=(),Error=Error>
         where A: AuthServer<Error=Error> + 'static, 
               S: WsStream + 'static, 
               E: Executor<Box<Future<Item=(),Error=()> + Send>> + Clone + 'static {
@@ -40,25 +51,25 @@ pub fn serve_connection<A,S,E>(auth_server: A, client: Client<S>, redis_addr: So
                 });
             auth_server.while_authorized(ident,conn_work)
         });
-    Box::new(work)
+    work
 }
 
 
 /// configure websocket client handles & execute `IDENTIFY` handshake
 ///
-pub fn init_server_side_client<S>(client: Client<S>) -> Box<Future<Item=(Identity,Sender,Receiver),Error=Error>>
+pub fn init_server_side_client<S>(client: Client<S>) -> impl Future<Item=(Identity,impl Sender, impl Receiver),Error=Error>
         where S: WsStream + 'static {
     let (sender,receiver) = split_client(client);
     let work = server_side_handshake(receiver).map(move |(ident,receiver)| {
         (ident,sender,receiver)
     });
-    Box::new(work)
+    work
 }
 
 
 /// initialize appropriate redis connection pair for specified identity
 ///
-pub fn init_redis<E>(address: SocketAddr, executor: E, ident: Identity) -> Box<Future<Item=(Sender,Receiver),Error=Error>> 
+pub fn init_redis<E>(address: SocketAddr, executor: E, ident: Identity) -> impl Future<Item=(impl Sender, impl Receiver),Error=Error>
         where E: Executor<Box<Future<Item=(),Error=()> + Send>> + Clone + 'static {
     let work = future::lazy(move || {
         let spawn_nonblock = redis::spawn_nonblock(&address,executor.clone());
@@ -67,13 +78,13 @@ pub fn init_redis<E>(address: SocketAddr, executor: E, ident: Identity) -> Box<F
             .map(move |(nonblock,blocking)| configure_redis(nonblock,blocking,ident));
         init_work
     });
-    Box::new(work)
+    work
 }
 
 
 /// build top-level connection future
 ///
-pub fn build_connection(client_handles: (Sender,Receiver), redis_handles: (Sender,Receiver), ident: Identity) -> Box<Future<Item=(),Error=Error>> {
+pub fn build_connection(client_handles: (impl Sender,impl Receiver), redis_handles: (impl Sender,impl Receiver), ident: Identity) -> impl Future<Item=(),Error=Error> {
     let filter_a = OperationFilter::new(ident);
     let filter_b = filter_a.clone();
     let (client_tx,client_rx) = client_handles;
@@ -86,11 +97,11 @@ pub fn build_connection(client_handles: (Sender,Receiver), redis_handles: (Sende
     }).filter_map(|op|op).forward(client_tx).map(|_|());
     let work = incoming.select(outgoing)
         .map(|_|()).map_err(|(err,_)|err);
-    Box::new(work)
+    work
 }
 
 
-fn configure_redis(nonblock: NonBlockHandle, blocking: BlockingHandle, ident: Identity) -> (Sender,Receiver) {
+fn configure_redis(nonblock: NonBlockHandle, blocking: BlockingHandle, ident: Identity) -> (impl Sender,impl Receiver) {
     let sender = redis::PushSink::new(nonblock).with(|op: Operation| {
         let channel: String = op.dest_channel().to_string();
         let payload: String = op.into();
@@ -107,7 +118,7 @@ fn configure_redis(nonblock: NonBlockHandle, blocking: BlockingHandle, ident: Id
 
 
 // TODO: handle non-text msg variants & proper ping/pong behavior
-pub fn split_client<S>(client: Client<S>) -> (Sender,Receiver)
+pub fn split_client<S>(client: Client<S>) -> (impl Sender,impl Receiver)
         where S: WsStream + 'static {
     let (tx,rx) = client.split();
     let sender = tx.with(|op: Operation| {
@@ -128,7 +139,7 @@ pub fn split_client<S>(client: Client<S>) -> (Sender,Receiver)
 }
 
 
-fn server_side_handshake<S>(client_stream: S) -> Box<Future<Item=(Identity,S),Error=Error>> 
+fn server_side_handshake<S>(client_stream: S) -> impl Future<Item=(Identity,S),Error=Error>
         where S: Stream<Item=Operation,Error=Error> + 'static {
     let work = client_stream.into_future()
         .map_err(|(error,_)|error)
@@ -140,7 +151,7 @@ fn server_side_handshake<S>(client_stream: S) -> Box<Future<Item=(Identity,S),Er
                 Err("stream terminated prior to handshake".into())
             }
         });
-    Box::new(work)
+    work
 }
 
 

@@ -9,6 +9,6 @@ pub(crate) mod util;
 
 pub use self::simple::SimpleNode;
 pub use self::types::SimpleRpcFuture;
-pub use self::util::ipc;
+pub use self::util::{ipc,ws};
 
 

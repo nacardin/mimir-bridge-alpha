@@ -3,6 +3,7 @@
 pub mod client;
 pub mod server;
 
+pub use websocket::WebSocketError as Error;
 
 /// websocket protocol header.
 ///

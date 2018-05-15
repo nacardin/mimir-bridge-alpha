@@ -18,6 +18,7 @@ extern crate log;
 
 
 pub mod common;
+pub mod error;
 pub mod redis;
 pub mod edge;
 pub mod ws;

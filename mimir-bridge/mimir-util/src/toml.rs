@@ -52,12 +52,18 @@ pub fn load<T,P>(path: P) -> Result<T,TomlError> where T: DeserializeOwned, P: A
         let mut buff = String::new();
         file.read_to_string(&mut buff)
             .map_err(|_| TomlError::ReadFile)?;
-        let deserialized = _toml::from_str(&buff)
-            .map_err(|_| TomlError::Deserialize)?;
-        Ok(deserialized)
+        from_str(&buff)
     } else {
         Err(TomlError::NoSuchFile)
     }
+}
+
+/// attempt to parse `str` as toml
+///
+pub fn from_str<T>(buff: &str) -> Result<T,TomlError> where T: DeserializeOwned {
+    let deserialized = _toml::from_str(buff)
+            .map_err(|_| TomlError::Deserialize)?;
+    Ok(deserialized)
 }
 
 

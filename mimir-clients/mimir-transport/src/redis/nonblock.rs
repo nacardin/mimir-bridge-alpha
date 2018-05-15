@@ -39,6 +39,9 @@ impl NonBlock<Arc<PairedConnection>> {
 
 
 impl<T> NonBlock<T> where T: RedisNonBlock {
+    
+    /// SADD -- add member(s) to set
+    pub fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> { self.inner.sadd(key,members) }
 
     /// SREM -- remove matching member(s) from set
     pub fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> { self.inner.srem(key,members) }
@@ -55,7 +58,9 @@ impl<T> NonBlock<T> where T: RedisNonBlock {
 
 
 impl<T> RedisNonBlock for NonBlock<T> where T: RedisNonBlock {
- 
+  
+    fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> { self.sadd(key,members) }
+
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> { self.srem(key,members) }
 
     fn smove<K: Into<String>, M: Into<String>>(&self, source: K, dest: K, member: M) -> SendBox<i64> { self.smove(source,dest,member) }
@@ -69,6 +74,9 @@ impl<T> RedisNonBlock for NonBlock<T> where T: RedisNonBlock {
 
 /// nonblocking redis commands
 pub trait RedisNonBlock {
+
+    /// SADD -- add member(s) to set
+    fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64>;
     
     /// SREM -- remove matching member(s) from set
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64>;
@@ -85,6 +93,10 @@ pub trait RedisNonBlock {
 
 
 impl RedisNonBlock for PairedConnection {
+
+    fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
+        self.send(commands::sadd(key,members))
+    }
 
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         self.send(commands::srem(key,members))
@@ -106,6 +118,10 @@ impl RedisNonBlock for PairedConnection {
 
 impl<'a,T> RedisNonBlock for &'a T where T: RedisNonBlock {
 
+    fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::sadd(self,key,members)
+    }
+
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         <T as RedisNonBlock>::srem(self,key,members)
     }
@@ -125,6 +141,10 @@ impl<'a,T> RedisNonBlock for &'a T where T: RedisNonBlock {
 
 
 impl<T> RedisNonBlock for Arc<T> where T: RedisNonBlock {
+
+    fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::sadd(self,key,members)
+    }
 
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         <T as RedisNonBlock>::srem(self,key,members)
@@ -146,6 +166,10 @@ impl<T> RedisNonBlock for Arc<T> where T: RedisNonBlock {
 
 impl<T> RedisNonBlock for Rc<T> where T: RedisNonBlock {
 
+    fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::sadd(self,key,members)
+    }
+
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         <T as RedisNonBlock>::srem(self,key,members)
     }
@@ -165,6 +189,10 @@ impl<T> RedisNonBlock for Rc<T> where T: RedisNonBlock {
 
 
 impl<T> RedisNonBlock for Box<T> where T: RedisNonBlock {
+
+    fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
+        <T as RedisNonBlock>::sadd(self,key,members)
+    }
 
     fn srem<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         <T as RedisNonBlock>::srem(self,key,members)

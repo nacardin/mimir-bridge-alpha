@@ -16,10 +16,12 @@ use edge::auth::{
 /// `AuthServer` implementor which relies on "lease" style 
 /// polling & renewal patterns to enforce permissions.
 ///
+#[derive(Clone)]
 pub struct LeaseServer<T> {
     redis_handle: T,
     lease_config: LeaseConfig,
 }
+
 
 impl<T> LeaseServer<T> {
 
@@ -183,22 +185,6 @@ impl<T> Stream for LeaseStream<T> where T: RedisNonBlock {
         Ok(Async::Ready(Some(self.state.get_lease_level())))
     }
 }
-
-
-/*
-impl<T> AuthServer for LeaseServer<T> where T: RedisNonBlock + Clone {
-
-    type Error = Error;
-
-    type AcquireFuture = Box<Future<Item=Self::HoldFuture,Error=Self::Error>>;
-
-    type HoldFuture = Box<Future<Item=(),Error=Self::Error>>;
-
-    fn authorize(&self, identity: Identity) -> Self::AcquireFuture {
-        // TODO...
-    }
-}
-*/
 
 
 /// default multiplier for polling interval

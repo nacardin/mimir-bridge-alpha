@@ -17,9 +17,13 @@ extern crate rlp;
 extern crate log;
 
 
+pub mod contracts;
 pub mod transact;
 pub mod node;
 pub mod util;
 pub mod rpc;
 pub mod abi;
+
+
+pub use web3::{Transport,Error};
 

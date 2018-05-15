@@ -1,0 +1,14 @@
+# address of local redis node
+redis-address = "127.0.0.1:6379"
+
+# ethereum websocket rpc url
+websocket-rpc = "ws://127.0.0.1:8546"
+
+# auth-seeding config by role
+[seeding.oracle]
+contract = "0xc0D9ac1dA08c9744DF9aa09699cC5bf7DFc29AC6"
+pre-auth = []
+
+[seeding.notary]
+pre-auth = []
+

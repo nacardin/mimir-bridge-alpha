@@ -1,9 +1,10 @@
 use futures::{Future,Stream,Async,Poll};
 use redis_async::client::paired::SendBox;
 use redis::RedisNonBlock;
-use common::{
-    Identity,
-    Role,
+use common::Identity;
+use edge::auth::util::{
+    conn_lease_keys,
+    auth_lease_keys,
 };
 use edge::Error;
 
@@ -103,25 +104,3 @@ pub struct Renewal {
     pub authority: bool,
 }
 
-
-
-/// construct source and destination keys for `conn` lease
-/// acquisition attempt
-fn conn_lease_keys(role: Role) -> (String,String) {
-    let mut src = role.to_string();
-    src.push_str("::conn-lease");
-    let mut dst = role.to_string();
-    dst.push_str("::conn-taken");
-    (src,dst)
-}
-
-
-/// construct source and destination keys for `auth` lease
-/// acquisition attempt
-fn auth_lease_keys(role: Role) -> (String,String) {
-    let mut src = role.to_string();
-    src.push_str("::auth-lease");
-    let mut dst = role.to_string();
-    dst.push_str("::auth-taken");
-    (src,dst)
-}

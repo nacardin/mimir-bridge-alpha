@@ -1,5 +1,7 @@
-use mimir_types::Address;
+use serde::{self,Serialize,Serializer,Deserialize,Deserializer};
+use mimir_util::types::Either;
 use mimir_util::hex;
+use mimir_types::Address;
 use common::{
     ParseError,
     Channel,
@@ -70,3 +72,20 @@ impl fmt::Display for Identity {
     }
 }
 
+
+impl Serialize for Identity {
+
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok,S::Error> where S: Serializer {
+        serializer.serialize_str(&self.to_string()) // TODO: avoid intermediate allocation
+    }
+}
+
+
+impl<'de> Deserialize<'de> for Identity {
+
+    fn deserialize<D>(deserializer: D) -> Result<Self,D::Error> where D: Deserializer<'de> {
+        let target: Either<&str,String> = Deserialize::deserialize(deserializer)?;
+        let target_str: &str = target.as_ref();
+        target_str.parse().map_err(serde::de::Error::custom)
+    }
+}

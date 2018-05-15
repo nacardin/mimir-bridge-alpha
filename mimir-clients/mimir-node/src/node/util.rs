@@ -1,6 +1,6 @@
 use tokio_core::reactor::Handle;
 use web3::error::{Error,ErrorKind};
-use web3::transports::Ipc;
+use web3::transports::{Ipc,WebSocket};
 use serde_json::Value;
 use node::SimpleNode;
 use std::path::Path;
@@ -11,6 +11,15 @@ use std::path::Path;
 pub fn ipc<P: AsRef<Path>>(path: P, handle: &Handle) -> Result<SimpleNode<Ipc>,Error> {
     let ipc = Ipc::with_event_loop(path,handle)?;
     let node = SimpleNode::new(ipc);
+    Ok(node)
+}
+
+
+/// instantiate a websocket based node interface.
+///
+pub fn ws(url: &str, handle: &Handle) -> Result<SimpleNode<WebSocket>,Error> {
+    let ws = WebSocket::with_event_loop(url,handle)?;
+    let node = SimpleNode::new(ws);
     Ok(node)
 }
 

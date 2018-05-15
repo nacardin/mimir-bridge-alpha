@@ -9,7 +9,6 @@ mod error;
 mod util;
 
 pub use self::helpers::{
-    Sender,Receiver,
     serve_connection,
     split_client,
 };
@@ -21,6 +20,8 @@ pub use self::auth::{
     LeaseServer,
     AcquireLease,
     HoldLease,
+    AuthPolicy,
+    Policy,
 };
 pub use self::util::Limit;
 
