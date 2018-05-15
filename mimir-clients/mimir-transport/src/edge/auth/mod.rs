@@ -10,6 +10,7 @@ pub(crate) use self::renew::{
 };
 pub use self::lease::{
     LeaseServer,
+    LeaseConfig,
     AcquireLease,
     HoldLease,
 };
@@ -54,6 +55,11 @@ pub trait AuthServer {
 }
 
 
+/// stateless `AuthServer` implementer for debugging purposes
+/// 
+/// logs and unconditionally authorizes all identities passed to
+/// `authorize`.  Useful for debugging purposes only.
+///
 #[derive(Debug,Copy,Clone)]
 pub struct DebugAuthServer;
 

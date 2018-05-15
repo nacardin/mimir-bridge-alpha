@@ -25,8 +25,7 @@ pub struct LeaseServer<T> {
 
 impl<T> LeaseServer<T> {
 
-    pub fn new(redis_handle: T, base_duration: Duration) -> Self {
-        let lease_config = LeaseConfig::new(base_duration);
+    pub fn new(redis_handle: T, lease_config: LeaseConfig) -> Self {
         Self { redis_handle, lease_config }
     }
 }

@@ -4,7 +4,6 @@
 extern crate mimir_service;
 extern crate mimir_transport;
 extern crate mimir_node;
-extern crate tokio_timer;
 extern crate tokio_core;
 extern crate futures;
 extern crate env_logger;
@@ -18,10 +17,9 @@ use mimir_service::auth_seeder::{
     Options,
     Config,
 };
+use mimir_transport::edge::LeaseConfig;
 use mimir_transport::redis;
-use std::time::{Duration,Instant};
 use tokio_core::reactor::Core;
-use tokio_timer::Interval;
 use futures::{Future,Stream};
 use log::LevelFilter;
 
@@ -48,11 +46,11 @@ fn main() {
 
     let seed_loader = SeedLoader::new(node.transport().to_owned(),config.seeding.clone());
 
-    let seeding_interval = Interval::new(Instant::now(),Duration::from_secs(2));
+    let lease_config: LeaseConfig = Default::default();
 
     let mut counter = 0;
 
-    let work = seeding_interval.map_err(|e|error!("timer error {:?}",e))
+    let work = lease_config.seeding_interval().map_err(|e|error!("timer error {:?}",e))
         .map(move |_| {
             seed_loader.get_seed_states()
                 .map_err(|e|error!("in seed loader {:?}",e))

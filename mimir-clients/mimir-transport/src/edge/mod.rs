@@ -18,6 +18,7 @@ pub use self::auth::{
     DebugAuthServer,
     AuthServer,
     LeaseServer,
+    LeaseConfig,
     AcquireLease,
     HoldLease,
     AuthPolicy,

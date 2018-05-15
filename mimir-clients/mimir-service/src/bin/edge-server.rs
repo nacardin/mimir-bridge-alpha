@@ -18,7 +18,7 @@ use mimir_transport::{
     ws
 };
 use log::LevelFilter;
-use std::time;
+
 
 fn main() {
     let opt = Options::from_args();
@@ -36,9 +36,11 @@ fn main() {
     let redis_handle = core.run(redis::spawn_nonblock(&config.redis_address,handle.clone()))
         .expect("unable to spawn redis handle");
 
-    let base_interval = time::Duration::from_secs(1);
+    let lease_config = Default::default();
 
-    let lease_server = edge::LeaseServer::new(redis_handle,base_interval);
+    debug!("leasing with {:?}",lease_config);
+
+    let lease_server = edge::LeaseServer::new(redis_handle,lease_config);
 
     let auth_server = edge::Policy::new(lease_server,config.policies.clone());
 
