@@ -139,6 +139,7 @@ pub fn split_client<S>(client: Client<S>) -> (impl Sender,impl Receiver)
 }
 
 
+// TODO: add handshake timeout...
 fn server_side_handshake<S>(client_stream: S) -> impl Future<Item=(Identity,S),Error=Error>
         where S: Stream<Item=Operation,Error=Error> + 'static {
     let work = client_stream.into_future()

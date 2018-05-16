@@ -12,6 +12,7 @@ mimir-types = { path = "../../mimir-bridge/mimir-types" }
 mimir-proto = { path = "../../mimir-bridge/mimir-proto" }
 mimir-util = { path = "../../mimir-bridge/mimir-util" }
 structopt = "0.2.5"
+lru-cache = "0.1.1"
 tokio-core = "0.1.11"
 tokio-timer = "0.1.2"
 crossbeam = "0.3.2"

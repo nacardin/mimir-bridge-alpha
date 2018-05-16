@@ -9,6 +9,9 @@ mod error;
 mod util;
 
 pub use self::helpers::{
+    Sender,
+    Receiver,
+    init_server_side_client,
     serve_connection,
     split_client,
 };

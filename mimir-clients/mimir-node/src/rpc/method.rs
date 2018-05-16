@@ -15,6 +15,7 @@ simple_unit!(
     GasPrice => "eth_gasPrice",
     TxCount => "eth_getTransactionCount",
     GetCode => "eth_getCode",
+    GetLogs => "eth_getLogs",
     Balance => "eth_getBalance",
     Accounts => "eth_accounts",
     Syncing => "eth_syncing",

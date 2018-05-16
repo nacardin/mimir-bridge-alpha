@@ -7,6 +7,7 @@ extern crate mimir_node;
 extern crate crossbeam;
 #[macro_use]
 extern crate structopt;
+extern crate lru_cache;
 #[macro_use]
 extern crate futures;
 extern crate futures_cpupool;
@@ -25,4 +26,4 @@ extern crate log;
 pub mod common;
 pub mod oracle;
 pub mod notary;
-
+pub mod faucet;
