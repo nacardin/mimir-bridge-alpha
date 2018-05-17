@@ -4,9 +4,7 @@ extern crate mimir_node;
 extern crate futures;
 extern crate tokio_core;
 extern crate tokio_timer;
-#[macro_use]
 extern crate serde_json;
-extern crate reqwest;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
@@ -22,7 +20,6 @@ use mimir_transport::{ws,edge};
 use mimir_transport::common::{
     Message,
     Command,
-    Auth,
     Role,
     MSG,
 };use mimir_worker::oracle::{
@@ -33,13 +30,18 @@ use mimir_transport::common::{
 
 
 fn main() {
-    // load command line options & config values
-    let mut opt = Options::from_args();
-    let conf = Config::init(&opt.config).unwrap();
+    // load command line options
+    let mut opt = Options::from_args(); 
 
     // set up logger & give some initial data
     init_logger(opt.log_level);
-    info!("oracle starting...");
+    
+    // load configuration & key files
+    let conf = Config::init(&opt.config).unwrap();
+    let sealer = KeyStore::init(&opt.keys)
+        .unwrap().sealer().unwrap();
+
+    info!("oracle::{:#} starting...",sealer.address());
     debug!("using options {:?}",opt);
     debug!("using config {:?}",conf);
 
@@ -49,14 +51,9 @@ fn main() {
     let timer = Timer::default();
    
     // set up basic oracle client handle.
-    let sealer = KeyStore::init(&opt.keys)
-        .unwrap().sealer().unwrap(); 
     let node = mimir_node::node::ws(conf.websocket_rpc.as_ref(),&handle).unwrap();
     let oracle = SimpleOracle::new(sealer,node);
-     
-    // set up synchronous http client for handling simple
-    // api calls during init sequence.
-    let client = reqwest::Client::new();
+
 
     if !opt.skip_all {
         // unless working on a local dev chain, the client should
@@ -81,28 +78,15 @@ fn main() {
             opt.auto_fund = true;
         }
 
-        // attempt to auto-fund against testnet faucet if `auto-fund` uption
-        // was set (may be set by command line or balance check).
         if opt.auto_fund {
-            info!("attempting auto-funding against {}",conf.fund_portal);
-            let Auth { addr, role, time, seal } = oracle.gen_auth();
-            let authorize = json!({
-                "msg": {
-                    "addr": addr,
-                    "role": role,
-                    "time": time,
-                },
-                "sig": seal,
-            });
-            debug!("auto-fund with auth {}",authorize);
-            let rsp = client.post(conf.fund_portal.clone())
-                .json(&authorize).send()
-                .expect("faucet must be active");
-            if !rsp.status().is_success() {
-                error!("bad faucet response {:?}",rsp);
-                panic!("cannot continue without funding");
-            }
-            info!("facet OK, waiting on funding tx...");
+
+            let identify = Command::identify(Role::Oracle,oracle.sealer());
+
+            let fund_work = ws::client::connect(&handle,&conf.fund_portal,identify.to_string())
+                .and_then(|client| client.flush());
+
+            let _ = core.run(fund_work).expect("auto-funding failed");
+
             for i in 0.. {
                 let sleep = timer.sleep(Duration::from_secs(10));
                 core.run(sleep).unwrap();

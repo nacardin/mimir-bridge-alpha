@@ -219,47 +219,52 @@ simple_error!(
 );
 
 
-#[cfg(test)]
-mod tests {
-    use secp256k1::{self,Address,Secret,Signer};
-    use keccak256::Keccak256;
+/// parity dev chain account
+pub mod dev {
+    use secp256k1::{Address,Secret};
 
     /// parity dev chain default account address
-    const ADDRESS: Address = Address([
+    pub const ADDRESS: Address = Address([
         0x00, 0xa3, 0x29, 0xc0, 0x64, 0x87, 0x69, 0xa7, 0x3a, 0xfa, 
         0xc7, 0xf9, 0x38, 0x1e, 0x08, 0xfb, 0x43, 0xdb, 0xea, 0x72
     ]);
 
     /// parity dev chain default account secret
-    const SECRET: Secret = Secret([
+    pub const SECRET: Secret = Secret([
         0x4d, 0x5d, 0xb4, 0x10, 0x7d, 0x23, 0x7d, 0xf6,
         0xa3, 0xd5, 0x8e, 0xe5, 0xf7, 0x0a, 0xe6, 0x3d, 
         0x73, 0xd7, 0x65, 0x8d, 0x40, 0x26, 0xf2, 0xee, 
         0xfd, 0x2f, 0x20, 0x4c, 0x81, 0x68, 0x2c, 0xb7
     ]);
+}
 
+
+#[cfg(test)]
+mod tests {
+    use secp256k1::{self,dev,Signer};
+    use keccak256::Keccak256;
 
     #[test]
     fn address() {
-        let signer = Signer::new(SECRET).unwrap();
+        let signer = Signer::new(dev::SECRET).unwrap();
         let address = signer.address();
-        assert_eq!(address,ADDRESS);
+        assert_eq!(address,dev::ADDRESS);
     }
 
     #[test]
     fn secret() {
-        let signer = Signer::new(SECRET).unwrap();
+        let signer = Signer::new(dev::SECRET).unwrap();
         let secret = signer.secret();
-        assert_eq!(secret,SECRET);
+        assert_eq!(secret,dev::SECRET);
     }
 
     #[test]
     fn ecrecover() {
-        let signer = Signer::new(SECRET).unwrap();
+        let signer = Signer::new(dev::SECRET).unwrap();
         let msg = Keccak256::hash(b"hello world");
         let sig = signer.sign(&msg);
         let address = secp256k1::ecrecover(&msg,&sig).unwrap();
-        assert_eq!(address,ADDRESS);
+        assert_eq!(address,dev::ADDRESS);
     }
 }
 

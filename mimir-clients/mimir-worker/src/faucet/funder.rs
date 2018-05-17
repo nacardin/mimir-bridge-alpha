@@ -9,7 +9,7 @@ use std::time::{Duration,Instant};
 
 
 #[derive(Debug,Clone)]
-pub struct Faucet<T> {
+pub struct Funder<T> {
     expiry: Duration,
     funded: LruCache<Address,Instant>, 
     sealer: ArcSealer,
@@ -17,7 +17,7 @@ pub struct Faucet<T> {
 }
 
 
-impl<T> Faucet<T> {
+impl<T> Funder<T> {
 
     pub fn new(sealer: ArcSealer, node: SimpleNode<T>) -> Self {
         let expiry = Duration::from_secs(1024);
@@ -27,7 +27,7 @@ impl<T> Faucet<T> {
 }
 
 
-impl<T> Faucet<T> where T: Transport {
+impl<T> Funder<T> where T: Transport {
 
     /// attempt to build funding future for specified address
     ///
@@ -54,7 +54,8 @@ impl<T> Faucet<T> where T: Transport {
     ///
     fn build_tx_future(&self, address: Address) -> TransactFuture<T,ArcSealer> {
         // 1 eth == 10 ^ 18 wei
-        let value: u64 = 1000000000000000000;
+        // this value corresponds to 10 ^ 16 wei (0.01 ether)
+        let value: u64 = 10000000000000000;
         TransactFuture::new(
             self.node.transport().to_owned(),
             self.sealer.clone(),
@@ -64,5 +65,4 @@ impl<T> Faucet<T> where T: Transport {
             )
     }
 }
-
 

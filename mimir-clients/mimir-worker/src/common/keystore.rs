@@ -1,6 +1,6 @@
 use mimir_util::toml::{self,TomlError};
 use mimir_types::{Address,Secret};
-use mimir_crypto::secp256k1::{Signer,Error};
+use mimir_crypto::secp256k1::{dev,Signer,Error};
 use common::ArcSealer;
 use std::path::Path;
 use std::sync::Arc;
@@ -20,6 +20,13 @@ pub struct KeyStore {
 
 
 impl KeyStore {
+
+    pub fn dev_account() -> Self {
+        warn!("using parity dev account keys...");
+        let address = dev::ADDRESS;
+        let secret  = dev::SECRET;
+        Self { address, secret }
+    }
 
     pub fn sealer(&self) -> Result<ArcSealer,Error> {
         let inner = Signer::new(&self.secret)?;

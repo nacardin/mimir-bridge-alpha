@@ -32,14 +32,14 @@ fn main() {
 
     init_logger(opt.log_level);
 
-    info!("notary starting...");
+    let sealer = KeyStore::init(&opt.keys)
+        .unwrap().sealer().unwrap();
+
+    info!("notary::{:#} starting...",sealer.address());
     debug!("using options {:?}",opt);
 
     let mut core = Core::new().unwrap();
-    let handle = core.handle();
-
-    let sealer = KeyStore::init(&opt.keys)
-        .unwrap().sealer().unwrap();
+    let handle = core.handle(); 
     let notary = Notary::new(sealer);
 
     let identify = Command::identify(Role::Notary,notary.sealer());

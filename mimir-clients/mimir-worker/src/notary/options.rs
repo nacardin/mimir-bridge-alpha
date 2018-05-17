@@ -13,7 +13,6 @@ pub struct Options {
     #[structopt(long = "log-level",default_value = "info")]
     pub log_level: LevelFilter,
 
-
     /// set mimir-bridge websocket portal
     #[structopt(long = "bridge-portal",default_value = "ws://127.0.0.1:8888/")]
     pub bridge_portal: Url,
