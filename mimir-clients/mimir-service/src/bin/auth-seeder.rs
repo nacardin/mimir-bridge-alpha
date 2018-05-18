@@ -76,26 +76,6 @@ fn main() {
                 .map_err(|e|error!("during seeding {:?}",e))
         });
 
-/*
-    let work = lease_config.seeding_interval().map_err(|e|error!("timer error {:?}",e))
-        .map(move |_| {
-            seed_loader.get_seed_states()
-                .map_err(|e|error!("in seed loader {:?}",e))
-        })
-        .flatten()
-        .for_each(move |seed_state| {
-            counter += 1;
-            if counter > 10 {
-                counter = 0;
-                info!("{}-conn {:?}",seed_state.role,seed_state.conn);
-                info!("{}-auth {:?}",seed_state.role,seed_state.auth);
-            }
-            let seed_work = apply_seeding(redis.clone(),seed_state)
-                .map_err(|e|error!("in `apply_seeding` {:?}",e));
-            handle.spawn(seed_work);
-            Ok(())
-        });
-*/
     core.run(work).unwrap()
 }
 
