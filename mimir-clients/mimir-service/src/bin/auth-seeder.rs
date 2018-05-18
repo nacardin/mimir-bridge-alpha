@@ -4,6 +4,7 @@
 extern crate mimir_service;
 extern crate mimir_transport;
 extern crate mimir_node;
+extern crate tokio_timer;
 extern crate tokio_core;
 extern crate futures;
 extern crate env_logger;
@@ -11,6 +12,8 @@ extern crate env_logger;
 extern crate log;
 
 
+use tokio_timer::Deadline;
+use std::time::Duration;
 use mimir_service::auth_seeder::{
     SeedLoader,
     apply_seeding,
@@ -50,6 +53,30 @@ fn main() {
 
     let mut counter = 0;
 
+    let seed_timeout = Duration::from_millis(2048);
+
+    let work = lease_config.seeding_interval().map_err(|e|error!("timer error {:?}",e))
+        .for_each(move |instant| {
+            let redis_handle = redis.clone();
+            counter += 1;
+            let show_seeding = if counter > 10 { counter = 0; true } else { false };
+            let seed_work = seed_loader.get_seed_states().map_err(|e|error!("in seed loader {:?}",e))
+                .for_each(move |seed_state| {
+                    if show_seeding {
+                        info!("{}-conn {:?}",seed_state.role,seed_state.conn);
+                        info!("{}-auth {:?}",seed_state.role,seed_state.auth);
+                    }
+                    apply_seeding(redis_handle.clone(),seed_state)
+                        .map_err(|e|error!("in `apply_seeding` {:?}",e))
+                });
+            Deadline::new(
+                seed_work,
+                instant + seed_timeout
+                )
+                .map_err(|e|error!("during seeding {:?}",e))
+        });
+
+/*
     let work = lease_config.seeding_interval().map_err(|e|error!("timer error {:?}",e))
         .map(move |_| {
             seed_loader.get_seed_states()
@@ -68,7 +95,7 @@ fn main() {
             handle.spawn(seed_work);
             Ok(())
         });
-
+*/
     core.run(work).unwrap()
 }
 
