@@ -19,6 +19,7 @@ extern crate log;
 
 pub mod contracts;
 pub mod transact;
+pub mod helpers;
 pub mod node;
 pub mod util;
 pub mod rpc;

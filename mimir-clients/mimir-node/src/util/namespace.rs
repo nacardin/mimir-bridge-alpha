@@ -47,8 +47,8 @@ impl<T> Util<T> where T: Transport {
     /// get a report on current synchronization indicators.
     ///
     pub fn sync_report(&self) -> SyncReportFuture<T> {
-        let eth = Eth::new(self.transport.clone());
-        let net = Net::new(self.transport.clone());
+        let eth = Eth::new(self.transport());
+        let net = Net::new(self.transport());
         let sync_future = eth.syncing();
         let block_future = eth.block(BlockNumber::Latest.into());
         let peer_future = net.peer_count();

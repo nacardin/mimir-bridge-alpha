@@ -11,8 +11,8 @@ extern crate log;
 
 use futures::{Future,Stream,Sink};
 use tokio_core::reactor::Core;
-use tokio_timer::Timer;
-use std::time::Duration;
+use tokio_timer::{Delay,Interval};
+use std::time::{Instant,Duration};
 use log::LevelFilter;
 
 use mimir_worker::common::KeyStore;
@@ -47,8 +47,7 @@ fn main() {
 
     // set up event loop and futures-aware timer thread. 
     let mut core = Core::new().unwrap();
-    let handle = core.handle(); 
-    let timer = Timer::default();
+    let handle = core.handle();
    
     // set up basic oracle client handle.
     let node = mimir_node::node::ws(conf.websocket_rpc.as_ref(),&handle).unwrap();
@@ -60,7 +59,7 @@ fn main() {
         // verify that the local node is sychronized before continuing...
         if !opt.skip_sync {
             info!("verifying sync state...");
-            let poll_sync = timer.interval(Duration::from_millis(500));
+            let poll_sync = Interval::new(Instant::now(),Duration::from_millis(512));
             let await_sync = oracle.node().util().await_sync(poll_sync);
             core.run(await_sync).unwrap();
             info!("local node appears synced");
@@ -88,7 +87,7 @@ fn main() {
             let _ = core.run(fund_work).expect("auto-funding failed");
 
             for i in 0.. {
-                let sleep = timer.sleep(Duration::from_secs(10));
+                let sleep = Delay::new(Instant::now() + Duration::from_secs(10));
                 core.run(sleep).unwrap();
                 let balance_check = oracle.node().eth().balance(worker_address.as_ref().into(),None);
                 if core.run(balance_check).unwrap() > balance { break; }
@@ -133,6 +132,20 @@ fn main() {
 
     let oracle_address = oracle.sealer().address();
 
+    let poll_block = Interval::new(Instant::now(),Duration::from_secs(1));
+
+    let block_stream = mimir_node::helpers::BlockStream::new(poll_block,oracle.node().transport().to_owned());
+
+    let block_stream = mimir_node::helpers::Lag::new(block_stream,1);
+
+    let monitor_blocks = block_stream.for_each(|block| {
+        if let Some(number) = block.number {
+            debug!("new block {:?}",number);
+        }
+        // TODO update oracle blockstate
+        Ok(())
+    });
+
     let work = connect.map_err(|e|error!("while connecting {}",e))
         .and_then(move |client| {
             let (tx,rx) = edge::split_client(client);
@@ -173,7 +186,9 @@ fn main() {
                 })
                 .forward(tx.sink_map_err(|e|error!("in outgoing msg sink {}",e)))
                 .map(|_|());
-            serve
+            let work = serve.select(monitor_blocks.map_err(|e|error!("in block monitor {:?}",e)))
+                .map_err(|_|()).map(|_|());
+            work
         });
 
     // do work.

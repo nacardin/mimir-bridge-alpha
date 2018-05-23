@@ -1,4 +1,6 @@
-use tokio_timer::{Interval,TimerError};
+use tokio_timer::Error as TimerError;
+use tokio_timer::Interval;
+//use tokio_timer::{Interval,TimerError};
 use futures::{Future,Stream,Async,Poll};
 use web3::error::{Error,ErrorKind};
 use web3::types::{SyncState,SyncInfo};
@@ -72,8 +74,14 @@ impl<T> Future for AwaitSync<T> where T: Transport {
                     self.count += 1;
                     if let SyncState::NotSyncing = report.sync_state {
                         if report.peer_count > 0x0.into() {
-                            let recently = unix_time() - 180;
-                            if report.last_block.timestamp > recently.into() {
+                            let is_recent = match report.last_block {
+                                Some(ref block) => {
+                                    let cutoff_time = unix_time() - 180;
+                                    block.timestamp > cutoff_time.into()
+                                },
+                                None => false,
+                            };
+                            if is_recent {
                                 return Ok(Async::Ready(report));
                             }
                         }

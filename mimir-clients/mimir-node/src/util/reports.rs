@@ -56,7 +56,7 @@ pub struct SyncReport {
     pub sync_state: SyncState,
 
     /// description of last block
-    pub last_block: Block<H256>,
+    pub last_block: Option<Block<H256>>,
 
     /// number of currently connected peers
     pub peer_count: U256
@@ -65,7 +65,7 @@ pub struct SyncReport {
 
 /// future which will resolve to a `SyncReport`.
 pub struct SyncReportFuture<T> where T: Transport {
-    pub(crate) inner: Join3<CallResult<SyncState,T::Out>,CallResult<Block<H256>,T::Out>,CallResult<U256,T::Out>>
+    pub(crate) inner: Join3<CallResult<SyncState,T::Out>,CallResult<Option<Block<H256>>,T::Out>,CallResult<U256,T::Out>>
 }
 
 

@@ -15,7 +15,7 @@ structopt = "0.2.5"
 tokio-timer = "0.2.3"
 tokio-core = "0.1.11"
 futures = "0.1.18"
-web3 = "0.3.0"
+web3 = { git = "https://github.com/forrest-marshall/rust-web3.git" }
 url_serde = "0.2.0"
 url = "1.7.0"
 env_logger = "0.5.5"
