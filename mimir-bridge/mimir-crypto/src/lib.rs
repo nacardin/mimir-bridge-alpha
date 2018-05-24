@@ -51,6 +51,7 @@ pub use secp256k1::{
 
 pub use traits::{
     Hasher,
+    Hashable,
     Signer,
 };
 
