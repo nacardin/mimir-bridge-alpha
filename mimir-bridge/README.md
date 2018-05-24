@@ -33,8 +33,8 @@ core mimir-bridge functionality implemented in rust.
 - [x] `Hasher` implementation for `keccak-256`
 - [x] ethereum style ecc primitives including `Address`
 - [x] `Signer` implementation for ethereum style `secp256k1`
-- [ ] `Hashable` trait for self-describing data
-
+- [x] `Hashable` trait for self-describing data
+- [ ] change to generics w/ defaults instead of assoc types for crypto traits
 
 ### mimir-types
 
@@ -46,5 +46,4 @@ core mimir-bridge functionality implemented in rust.
 
 - [x] aggregate macros for common patterns & boilerplate
 - [x] aggregate common helper functions (`hex`,`toml`,`time`,etc...).
-
-
+ 
