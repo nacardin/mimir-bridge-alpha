@@ -18,6 +18,8 @@ mimir-bridge clients implemented in rust.
 - [x] check for funded state on startup
 - [x] check for bound state on startup
 - [ ] populate new `BlockState` on each new block (with lag)
+- [ ] minimal router client (redis-based OK for debug)
+- [ ] minimal verifier client (simple `Cmp` based checks OK for debug)
 
 ### mimir-requester
 
@@ -39,7 +41,4 @@ TODO
 - [x] minimal `edge-server` (basic leasing & msg forwarding)
 - [ ] simple "clock" based auth seeding & expiry (block number OK for mvp)
 - [ ] connected set calculation & rate-limited marking of disconnects
-- [ ] 
-
-
 
