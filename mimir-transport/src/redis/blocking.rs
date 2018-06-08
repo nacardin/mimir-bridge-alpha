@@ -1,11 +1,7 @@
-use futures::future::{Future,Executor};
-use redis_async::client::paired::{
-    PairedConnection,
-    SendBox,
-};
-use redis_async::error::Error;
+use futures::future::{Future};
 use redis_async::client;
 use redis::commands;
+use redis::{PairedConnectionBoxFuture,SendBox};
 use std::net::SocketAddr;
 
 /// wrapper which restricts a redis connection to blocking commands only
@@ -16,16 +12,15 @@ pub struct Blocking<T> {
 
 /// exclusive redis handle for execution of blocking redis commands
 ///
-pub type BlockingHandle = Blocking<PairedConnection>;
+pub type BlockingHandle = Blocking<PairedConnectionBoxFuture>;
 
 
-impl Blocking<PairedConnection> {
+impl Blocking<PairedConnectionBoxFuture> {
 
     /// instantiate new blocking handle instance
-    pub fn new<E>(addr: &SocketAddr, executor: E) -> Box<Future<Item=Self,Error=Error>> 
-            where E: Executor<Box<Future<Item=(),Error=()> + Send>> + 'static {
-        let work = client::paired_connect(addr,executor)
-            .map(|inner| Self { inner });
+    pub fn new(addr: &SocketAddr) -> SendBox<Self> {
+        let work = client::paired_connect(addr)
+            .map(|inner| Self { inner: PairedConnectionBoxFuture(inner) });
         Box::new(work)
     }
 }
@@ -52,7 +47,6 @@ impl<T> RedisBlocking for Blocking<T> where T: RedisBlocking {
     }
 }
 
-
 /// blocking redis commands
 pub trait RedisBlocking {
 
@@ -64,7 +58,7 @@ pub trait RedisBlocking {
 }
 
 
-impl RedisBlocking for PairedConnection {
+impl RedisBlocking for PairedConnectionBoxFuture {
 
     fn brpop<K: IntoIterator<Item=String>>(&mut self, keys: K) -> SendBox<(String,String)> {
         self.send(commands::brpop(keys,None))

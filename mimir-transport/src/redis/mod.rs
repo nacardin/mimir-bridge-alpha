@@ -5,31 +5,7 @@
 //! handle are asynchronous rust code).
 //!
 //! ```
-//! extern crate mimir_transport;
-//! extern crate tokio_core;
-//! 
-//! use mimir_transport::redis::spawn_nonblock;
-//! use tokio_core::reactor::Core;
-//! # fn example() {
-//!
-//! let mut core = Core::new().unwrap();
-//!
-//! let handle = core.handle();
-//!
-//! let address = "127.0.0.1:6379".parse().unwrap();
-//! 
-//! // create new redis connection
-//! let redis = core.run(spawn_nonblock(&address,handle))
-//!     .expect("unable to connect to redis instance");
-//! 
-//! // execute non-blocking right-pop from list
-//! match core.run(redis.rpop("some-list")).unwrap() {
-//!     Some(item) => println!("popped item from list: {}",item),
-//!     None => println!("list is currently empty"),
-//! }
-//!
-//! # }
-//! # fn main() { }
+//! TODO: example
 //! ``` 
 //!
 
@@ -54,24 +30,33 @@ pub use self::nonblock::{
 pub use self::pop_stream::PopStream;
 pub use self::push_sink::PushSink;
 
-pub use redis_async::client::paired::SendBox;
+pub use redis_async::client::paired::PairedConnection;
 pub use redis_async::error::Error;
+use redis_async::resp;
 
-use futures::future::{Future,Executor};
+use futures::future::Future;
 use std::net::SocketAddr;
 
 
 /// spawn new blocking redis handle
 ///
-pub fn spawn_blocking<E>(address: &SocketAddr, executor: E) -> Box<Future<Item=BlockingHandle,Error=Error>>
-        where E: Executor<Box<Future<Item=(),Error=()> + Send>> + 'static {
-    BlockingHandle::new(address,executor)
+pub fn spawn_blocking(address: &SocketAddr) -> SendBox<BlockingHandle> {
+    BlockingHandle::new(address)
 }
 
 
 /// spanw new nonblocking redis handle
 ///
-pub fn spawn_nonblock<E>(address: &SocketAddr, executor: E) -> Box<Future<Item=NonBlockHandle,Error=Error>>
-        where E: Executor<Box<Future<Item=(),Error=()> + Send>> + 'static {
-    NonBlockHandle::new(address,executor)
+pub fn spawn_nonblock<E>(address: &SocketAddr) -> SendBox<NonBlockHandle> {
+    NonBlockHandle::new(address)
+}
+
+pub type SendBox<T> = Box<Future<Item = T, Error = Error> + Send>;
+
+pub struct PairedConnectionBoxFuture(PairedConnection);
+
+impl PairedConnectionBoxFuture {
+    pub fn send<T>(&self, msg: resp::RespValue) -> SendBox<T> where T: resp::FromResp + Send + 'static {
+        Box::new(self.0.send(msg))
+    }
 }

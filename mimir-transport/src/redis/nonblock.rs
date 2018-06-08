@@ -1,11 +1,7 @@
-use futures::future::{Future,Executor};
-use redis_async::client::paired::{
-    PairedConnection,
-    SendBox,
-};
-use redis_async::error::Error;
+use futures::future::Future;
 use redis_async::client;
 use redis::commands;
+use redis::{PairedConnectionBoxFuture,SendBox};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::rc::Rc;
@@ -20,17 +16,15 @@ pub struct NonBlock<T> {
 
 
 /// shareable redis handle for execution of non-blocking redis commands
-pub type NonBlockHandle = NonBlock<Arc<PairedConnection>>;
+pub type NonBlockHandle = NonBlock<Arc<PairedConnectionBoxFuture>>;
 
-
-impl NonBlock<Arc<PairedConnection>> {
+impl NonBlock<Arc<PairedConnectionBoxFuture>> {
 
     /// instantiate new nonblocking handle instance
-    pub fn new<E>(addr: &SocketAddr, executor: E) -> Box<Future<Item=Self,Error=Error>> 
-            where E: Executor<Box<Future<Item=(),Error=()> + Send>> + 'static {
-        let work = client::paired_connect(addr,executor)
+    pub fn new(addr: &SocketAddr) -> SendBox<Self> {
+        let work = client::paired_connect(addr)
             .map(|conn| {
-                let inner = Arc::new(conn);
+                let inner = Arc::new(PairedConnectionBoxFuture(conn));
                 Self { inner }
             });
         Box::new(work)
@@ -92,7 +86,7 @@ pub trait RedisNonBlock {
 }
 
 
-impl RedisNonBlock for PairedConnection {
+impl RedisNonBlock for PairedConnectionBoxFuture {
 
     fn sadd<K: Into<String>, M: IntoIterator<Item=String>>(&self, key: K, members: M) -> SendBox<i64> {
         self.send(commands::sadd(key,members))
