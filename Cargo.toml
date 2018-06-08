@@ -2,17 +2,20 @@
 name = "mimir-bridge"
 version = "0.1.0"
 authors = ["Forrest Marshall <forrest@mimirblockchain.solutions>"]
-license = "GPL-3.0"
+
+[dependencies]
+mimir-common = { path = "mimir-common" }
+mimir-crypto = { path = "mimir-crypto" }
+mimir-proto = { path = "mimir-proto" }
+mimir-transport = { path = "mimir-transport" }
+mimir-worker = { path = "mimir-worker"}
 
 [workspace]
 members = [
-    "mimir-bridge/mimir-crypto",
-    "mimir-bridge/mimir-types",
-    "mimir-bridge/mimir-util",
-    "mimir-bridge/mimir-proto",
-    "mimir-clients/mimir-transport",
-    "mimir-clients/mimir-node",
-    "mimir-clients/mimir-worker",
-    "mimir-clients/mimir-requester",
-    "mimir-clients/mimir-service",
+    "mimir-crypto",
+    "mimir-common",
+    "mimir-proto",
+    "mimir-transport",
+    "mimir-worker",
 ]
+

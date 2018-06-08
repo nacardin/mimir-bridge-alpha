@@ -1,6 +1,0 @@
-serve-address = "127.0.0.1:8888"
-redis-address = "127.0.0.1:6379"
-
-[policies]
-admin = "deny-all"
-
