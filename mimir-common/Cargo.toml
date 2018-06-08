@@ -1,0 +1,18 @@
+[package]
+name = "mimir-common"
+version = "0.1.0"
+authors = ["Forrest Marshall <forrest@mimirblockchain.solutions>"]
+license = "GPL-3.0"
+
+[dependencies]
+hex-core = { git = "https://github.com/forrest-marshall/hex-core.git" }
+serde_derive = "1.0.27"
+serde = "1.0.27"
+toml = "0.4.5"
+rand_derive = "0.3.1"
+rand = "0.4.2"
+
+[dev-dependencies]
+serde_json = "1.0.10"
+futures = "0.1.18"
+

@@ -1,0 +1,17 @@
+[package]
+name = "mimir-crypto"
+version = "0.1.0"
+authors = ["Forrest Marshall <forrest@mimirblockchain.solutions>"]
+license = "GPL-3.0"
+
+[dependencies]
+mimir-common = { path = "../mimir-common" }
+lazy_static = "1.0.0"
+tiny-keccak = "1.4.0"
+rand = "0.4.2"
+
+
+[dependencies.secp256k1]
+features = [ "rand" ]
+version = "0.8.1"
+
