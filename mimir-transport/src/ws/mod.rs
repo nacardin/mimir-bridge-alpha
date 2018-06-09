@@ -54,7 +54,7 @@
 
 pub(crate) mod util;
 mod types;
-
+pub mod eth_rpc_client;
 
 pub use self::types::Message;
 
