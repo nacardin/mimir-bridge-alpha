@@ -15,3 +15,8 @@ rand = "0.4.2"
 features = [ "rand" ]
 version = "0.8.1"
 
+[dev-dependencies]
+docopt = "0.9"
+serde = "1.0" # if you're using `derive(Deserialize)`
+serde_derive = "1.0" # if you're using `derive(Deserialize)`
+toml = "0.4.2"
