@@ -11,6 +11,7 @@ extern crate serde;
 extern crate log;
 
 pub mod message;
+pub mod types;
 pub mod visit;
 pub mod judge;
 pub mod route;

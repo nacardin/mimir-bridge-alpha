@@ -16,9 +16,13 @@ extern crate url;
 #[macro_use]
 extern crate log;
 
-pub mod error;
+pub(crate) mod error;
+pub mod service;
 pub mod redis;
-pub mod eth;
+//pub mod util;
+pub mod rds; // temp
+//pub mod eth;
+//pub mod rpc;
 pub mod ws;
 
 pub use error::Error;

@@ -4,9 +4,7 @@
 //! for the blocking and non-blocking subsets of redis commands (both types of
 //! handle are asynchronous rust code).
 //!
-//! ```
 //! TODO: example
-//! ``` 
 //!
 
 pub(crate) mod commands;

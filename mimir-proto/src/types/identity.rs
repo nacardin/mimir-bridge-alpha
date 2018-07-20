@@ -1,17 +1,28 @@
 use serde::{self,Serialize,Serializer,Deserialize,Deserializer};
 use mimir_common::types::Either;
 use mimir_common::util::hex;
+use mimir_common::Error;
 use mimir_crypto::Address;
-use types::{
-    ParseError,
-    Role
-};
+use types::Role;
 use std::str::FromStr;
 use std::fmt;
 
 
-
-/// identity of an entity
+/// identity of an entity within the bridge
+///
+/// ```
+/// extern crate mimir_proto;
+/// use mimir_proto::types::Identity;
+/// # fn main() {
+/// 
+/// let ident_str = "oracle::00a329c0648769a73afac7f9381e08fb43dbea72";
+///
+/// let identity: Identity = ident_str.parse().unwrap();
+///
+/// assert_eq!(ident_str,&identity.to_string());
+///
+/// # }
+/// ```
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct Identity {
     /// address of entity
@@ -25,35 +36,24 @@ impl Identity {
 
     /// instantiate new identity
     pub fn new(address: Address, role: Role) -> Self { Self { address, role } }
-
-    /// get shared channel for this identity
-    pub fn shared_channel(&self) -> Channel {
-        Channel::Shared { role: self.role }
-    }
-
-    /// get direct channel for this identity
-    pub fn direct_channel(&self) -> Channel {
-        Channel::Direct { role: self.role, addr: self.address }
-    }
 }
 
 
 impl FromStr for Identity {
 
-    type Err = ParseError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self,Self::Err> {
         let mut split = s.splitn(2,"::");
         match (split.next(),split.next()) {
             (Some(role),Some(address)) => {
-                let role: Role = role.parse()
-                    .map_err(|_|ParseError::BadRoleVariant)?;
-                let address: Address = address.parse()
-                    .map_err(|_|ParseError::BadAddress)?;
+                let role: Role = role.parse()?;
+                let address: Address = address.parse()?;
                 Ok(Self { address, role })
             },
             _ => {
-                Err(ParseError::MissingVal)
+                let message = "identity must be string of form `<role>::<address>`";
+                Err(Error::new(message))
             }
         }
     }

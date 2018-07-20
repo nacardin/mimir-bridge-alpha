@@ -1,5 +1,5 @@
-
-
+//! miscellaneous types
+//!
 mod identity;
 
 pub use self::identity::Identity;
