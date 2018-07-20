@@ -54,3 +54,115 @@ pub fn lpush<K: Into<String>, V: IntoIterator<Item=String>>(key: K, values: V) -
         .chain(values).map(|elem| elem.into()).collect();
     RespValue::Array(values)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn vec_of_strings(strs: &[&str]) -> Vec<String> {
+        strs.iter().map(|s| (*s).into()).collect()
+    }
+
+    fn bulk_string<Str: AsRef<str>>(string: Str) -> RespValue {
+        RespValue::BulkString(string.as_ref().as_bytes().to_vec())
+    }
+
+    #[test]
+    fn test_brpop() {
+
+        let keys = ["k1", "k2"];
+
+        let resp = brpop(vec_of_strings(&keys), Some(5));
+
+        let expected_resp = RespValue::Array(vec![
+            bulk_string("BRPOP"),
+            bulk_string(&keys[0]),
+            bulk_string(&keys[1]),
+            bulk_string("5")
+        ]);
+        assert_eq!(resp, expected_resp);
+    }
+
+    #[test]
+    fn test_sadd() {
+
+        let key = "k1";
+        let members = ["m1", "m2"];
+
+        let resp = sadd(key, vec_of_strings(&members));
+
+        let expected_resp = RespValue::Array(vec![
+            bulk_string("SADD"),
+            bulk_string(&key),
+            bulk_string(&members[0]),
+            bulk_string(&members[1])
+        ]);
+        assert_eq!(resp, expected_resp);
+    }
+
+    #[test]
+    fn test_srem() {
+
+        let key = "k1";
+        let members = ["m1", "m2"];
+
+        let resp = srem(key, vec_of_strings(&members));
+
+        let expected_resp = RespValue::Array(vec![
+            bulk_string("SREM"),
+            bulk_string(&key),
+            bulk_string(&members[0]),
+            bulk_string(&members[1])
+        ]);
+        assert_eq!(resp, expected_resp);
+    }
+
+    #[test]
+    fn test_smove() {
+
+        let key_src = "k1";
+        let key_dst = "k2";
+        let member = "m";
+
+        let resp = smove(key_src, key_dst, member);
+
+        let expected_resp = RespValue::Array(vec![
+            bulk_string("SMOVE"),
+            bulk_string(&key_src),
+            bulk_string(&key_dst),
+            bulk_string(&member),
+        ]);
+        assert_eq!(resp, expected_resp);
+    }
+
+    #[test]
+    fn test_rpop() {
+
+        let key = "k1";
+
+        let resp = rpop(key.to_owned());
+
+        let expected_resp = RespValue::Array(vec![
+            bulk_string("RPOP"),
+            bulk_string(key)
+        ]);
+        assert_eq!(resp, expected_resp);
+    }
+
+    #[test]
+    fn test_lpush() {
+
+        let key = "k1";
+        let members = ["m1", "m2"];
+
+        let resp = lpush(key, vec_of_strings(&members));
+
+        let expected_resp = RespValue::Array(vec![
+            bulk_string("LPUSH"),
+            bulk_string(&key),
+            bulk_string(&members[0]),
+            bulk_string(&members[1])
+        ]);
+        assert_eq!(resp, expected_resp);
+    }
+}
