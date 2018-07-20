@@ -1,3 +1,41 @@
+//! fundamental building blocks for redis based producer/consumer models.
+//!
+//! This module exposes separate "blocking" and "non-blocking" redis handles
+//! for the blocking and non-blocking subsets of redis commands (both types of
+//! handle are asynchronous rust code).
+//!
+//! ```
+//! extern crate mimir_transport;
+//! extern crate tokio;
+//! 
+//! use mimir_transport::rds as redis;
+//! use tokio::prelude::*;
+//! 
+//! # fn example() {
+//! 
+//! let address = "127.0.0.1:6379".parse().unwrap();
+//! 
+//! let targets = vec!["some-list-0".to_string(),"some-list-1".to_string()];
+//! 
+//! let redis_task = redis::spawn_blocking(&address).and_then(|redis_handle| {
+//! 
+//!     redis::pop_stream(redis_handle, targets)
+//!         .for_each(|(list, value)| {
+//!             println!("list {}, value {}", list, value);
+//!             Ok(())
+//!           })
+//! }).map_err(|x| {
+//! 
+//!     println!("error: {:?}", x);
+//!     ()
+//! });
+//! 
+//! tokio::run(redis_task);
+//! 
+//! # }
+//! ```
+//!
+
 use redis_async::error::Error;
 use std::net::SocketAddr;
 use tokio::prelude::*;
